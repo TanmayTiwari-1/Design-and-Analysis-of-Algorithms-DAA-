@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-// (i) optimized: early exit if a pass has zero swaps
 long bubble_sort_optimized(int *arr, int n) {
     long comparisons = 0;
     int swapped;
@@ -15,7 +14,7 @@ long bubble_sort_optimized(int *arr, int n) {
                 swapped = 1;
             }
         }
-        if (!swapped) break; // array already sorted, stop early
+        if (!swapped) break; 
     }
     return comparisons;
 }
@@ -83,7 +82,7 @@ int main(void) {
         int n = sizes[s];
         int *a1 = malloc(n * sizeof(int));
         int *a2 = malloc(n * sizeof(int));
-        for (int i = 0; i < n; i++) { a1[i] = i; a2[i] = i; } // already sorted
+        for (int i = 0; i < n; i++) { a1[i] = i; a2[i] = i; }
         long c1 = bubble_sort_optimized(a1, n);
         long c2 = bubble_sort_unoptimized(a2, n);
         printf("%-8d %-22ld %-22ld\n", n, c1, c2);
