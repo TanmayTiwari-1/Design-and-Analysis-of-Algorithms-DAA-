@@ -2,8 +2,6 @@
 
 <div align="center">
 
-## **IIIT Bhubaneswar**
-
 ---
 
 </div>
