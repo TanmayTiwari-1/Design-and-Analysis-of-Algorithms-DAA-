@@ -2,21 +2,7 @@
 
 <div align="center">
 
-## **IIIT Bhubaneswar**
-
-### **Department of Computer Engineering (CE)**
-
-### **B.Tech – 3rd Semester**
-
-### **Design and Analysis of Algorithms (DAA)**
-
-### **Lab Assignment – 01**
-
-**Submitted by**
-
-**Tanmay Tiwari**
-
-**Student ID:** **B325044**
+## **IIIT Bhubaneswar*
 
 ---
 
@@ -34,7 +20,6 @@ The objective of this laboratory is to understand the implementation, analysis, 
 
 | Field | Details |
 |-------|---------|
-| **Institute** | IIIT Bhubaneswar |
 | **Department** | Computer Engineering (CE) |
 | **Course** | Design and Analysis of Algorithms (DAA) |
 | **Semester** | 3rd Semester |
