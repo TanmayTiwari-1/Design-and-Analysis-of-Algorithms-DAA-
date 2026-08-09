@@ -49,3 +49,11 @@ Level 3:
 
 Final:
           A1...A8
+
+At every level, a total of kn elements are processed.
+
+There are log₂(k) levels.
+
+Time Complexity
+
+T(n,k) = Θ(nk log k)
