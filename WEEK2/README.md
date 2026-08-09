@@ -54,6 +54,6 @@ At every level, a total of kn elements are processed.
 
 There are log₂(k) levels.
 
-Time Complexity
+### Time Complexity
 
 T(n,k) = Θ(nk log k)
