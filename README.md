@@ -20,7 +20,7 @@ The objective of these laboratories is to understand the implementation, analysi
 | **Student Name** | Tanmay Tiwari                           |
 | **Student ID**   | B325044                                 |
 | **Institute**    | IIIT Bhubaneswar                        |
-| **Instructor**   | Dr. Ajaya Kumar Dash (Lab-04)           |
+| **Instructor**   | Dr. Ajaya Kumar Dash                    |
 
 ---
 
