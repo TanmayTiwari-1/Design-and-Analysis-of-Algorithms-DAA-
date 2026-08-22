@@ -4,7 +4,7 @@
 
 ## Repository Overview
 
-This repository contains the C implementations and experimental analysis for **Lab-01, Lab-02, and Lab-03** of the **Design and Analysis of Algorithms (DAA)** course.
+This repository contains the C implementations and experimental analysis for **Lab-01, Lab-02, Lab-03, and Lab-04** of the **Design and Analysis of Algorithms (DAA)** course.
 
 The objective of these laboratories is to understand the implementation, analysis, and comparison of different algorithms using practical experiments. Each experiment includes source code, generated datasets, observations, complexity analysis, and README documentation.
 
@@ -20,6 +20,7 @@ The objective of these laboratories is to understand the implementation, analysi
 | **Student Name** | Tanmay Tiwari                           |
 | **Student ID**   | B325044                                 |
 | **Institute**    | IIIT Bhubaneswar                        |
+| **Instructor**   | Dr. Ajaya Kumar Dash (Lab-04)           |
 
 ---
 
@@ -615,6 +616,203 @@ Once the first `n−1` elements have been correctly placed in sorted order via t
 
 ---
 
+# Lab-04
+
+*BTech (CS-B and CE), 3rd Semester | August 18, 2026 | Instructor: Dr. Ajaya Kumar Dash*
+
+All six experiments in Lab-04 are applications of sorting techniques (bucketing, sorted-array binary search, sorting + two-pointer scans, and sweep-line/event processing over a sorted timeline) to solve classic algorithmic problems in O(n) or O(n log n) time.
+
+## Experiment 1 – Sort n Items by Colour
+
+### Objective
+
+Given `n` `(number, colour)` pairs, already sorted by number, where `colour` is red, blue, or yellow, sort them so all reds come first, then blues, then yellows — while numbers within each colour stay in sorted order. Must run in O(n).
+
+### Approach
+
+* Since there are only 3 possible colours, this is a **stable bucketing problem** (like a 3-bucket counting sort), not a real comparison sort.
+* Because the input is already sorted by number, a single left-to-right pass that copies every red item (in the order seen) into the output automatically keeps those reds in sorted order — items are never reordered relative to same-coloured items.
+* Repeat the same linear pass for blues, then for yellows.
+* Three linear passes over the array = O(n) total; stability comes for free since same-coloured items are never swapped relative to each other.
+
+### Concepts Covered
+
+* Stable Bucketing / Counting-Sort Style Partitioning
+* Exploiting Pre-Sorted Input
+* Linear-Time Sorting by a Bounded Number of Categories
+
+### Complexity
+
+* **Time:** O(n) — 3 linear passes
+* **Space:** O(n) for the output array
+
+### Output
+
+* `sort_by_colour.c`
+* Sample run: 8 items correctly bucketed into RED → BLUE → YELLOW with numbers preserved in sorted order within each colour
+
+---
+
+## Experiment 2 – Pair from Two Sets Summing to x
+
+### Objective
+
+Given two sets `S1` and `S2` (size `n` each) and a target `x`, find whether some `a ∈ S1` and `b ∈ S2` exist with `a + b = x`, in O(n log n).
+
+### Approach
+
+* For each `a` in `S1`, the only value that could work is exactly `b = x − a`.
+* Sort `S2` once — O(n log n).
+* For every `a` in `S1`, binary-search for `(x − a)` in the sorted `S2` — O(log n) per lookup.
+* `n` lookups × O(log n) = O(n log n), plus the O(n log n) sort → overall **O(n log n)**.
+
+### Concepts Covered
+
+* Sorting + Binary Search
+* Complement Search Technique
+* Two-Set Pair Existence
+
+### Complexity
+
+* **Time:** O(n log n) — O(n log n) sort + O(n log n) binary searches
+* **Space:** O(n) for the sorted copy of `S2`
+
+### Output
+
+* `pair_sum_two_sets.c`
+* Sample run: pair found, e.g. `4 (from S1) + 8 (from S2) = 12`
+
+---
+
+## Experiment 3 – k Numbers Summing to T
+
+### Objective
+
+Given a set `S` of `n` integers and integer `T`, test whether some `k` of the integers add up to `T`, in O(n^(k−1) · log n).
+
+### Approach
+
+* Generalises the classic 2-sum / 3-sum tricks.
+* Sort `S` once — O(n log n).
+* Fix the first `(k−2)` numbers using brute-force nested loops over all strictly increasing index combinations — there are O(n^(k−2)) such combinations.
+* For each choice, the remaining two numbers must sum to `T` minus the sum already picked; find them in the sorted array using the classic **two-pointer scan** (one pointer from the smallest remaining element, one from the largest, moving inward) in O(n).
+* Total = O(n^(k−2)) combinations × O(n) two-pointer scan = O(n^(k−1)), and adding the sorting term gives the O(n^(k−1) · log n) bound asked for.
+* For `k = 2` this reduces to the classic pair-sum two-pointer method; for `k = 3` it is the classic 3-sum algorithm.
+
+### Concepts Covered
+
+* Generalised k-Sum Problem
+* Sorting + Two-Pointer Technique
+* Recursive Combination Enumeration
+* Reduction from k-Sum to 2-Sum
+
+### Complexity
+
+* **Time:** O(n^(k−1) · log n)
+* **Space:** O(k) recursion stack plus O(n) sorted array
+
+### Output
+
+* `k_sum.c`
+* Sample run: `k = 3`, found 3 numbers summing to 24 → `1 8 15`
+
+---
+
+## Experiment 4 – Maximum People Simultaneously at a Party
+
+### Objective
+
+Given `n` people, with person `i` present during `[a_i, b_i]`, find the time when the most people are present at once, in O(n log n).
+
+### Approach — Sweep-Line / Event Technique
+
+* Turn every person's stay into two events: an **ENTRY** event at time `a_i` (count `+1`) and an **EXIT** event at time `b_i` (count `−1`).
+* Sort all `2n` events by time — O(n log n).
+* Sweep through the sorted events left to right, maintaining a running counter: add 1 on entry, subtract 1 on exit, and track the highest value the counter ever reaches (and when).
+* That peak is the busiest moment. The sweep itself is O(n), so the total is O(n log n), dominated by the sort.
+
+### Concepts Covered
+
+* Sweep-Line Technique
+* Event-Based Simulation
+* Sorting by Time
+
+### Complexity
+
+* **Time:** O(n log n) — O(n log n) sort of `2n` events + O(n) sweep
+* **Space:** O(n) for the event array
+
+### Output
+
+* `max_people_party.c`
+* Sample run: `Maximum simultaneous people present = 3, first reached at time = 3`
+
+---
+
+## Experiment 5 – Merge Overlapping Intervals
+
+### Objective
+
+Given `n` intervals, merge all overlapping ones. Example: `{(1,3),(2,6),(8,10),(7,18)} → {(1,6),(7,18)}`. Must run in O(n log n).
+
+### Approach
+
+* Sort all intervals by their starting point — O(n log n).
+* Walk through them left to right, keeping a "current merged interval" in hand.
+* If the next interval's start is ≤ the current interval's end, they overlap, so stretch the current interval's end outward if needed.
+* If the next interval starts strictly after the current one ends, there is a gap — close off (output) the current merged interval and start a new one from the next interval.
+* This single left-to-right pass is O(n), so the total time is O(n log n) from the sort.
+
+### Concepts Covered
+
+* Sorting by Start Point
+* Greedy Interval Merging
+* Linear Scan After Sorting
+
+### Complexity
+
+* **Time:** O(n log n) — dominated by the initial sort
+* **Space:** O(n) for the output array
+
+### Output
+
+* `merge_intervals.c`
+* Sample run: `Merged intervals: (1, 6) (7, 18)`
+
+---
+
+## Experiment 6 – Point Covered by the Most Intervals
+
+### Objective
+
+Given `n` intervals `[l_i, r_i]` on a line, find a point `p` that lies inside the largest number of intervals (endpoints count as being inside their interval), in O(n log n).
+
+### Approach
+
+* Uses the same sweep-line idea as Experiment 4. Every interval becomes a **START** event at `l_i` (`+1`) and an **END** event at `r_i` (`−1`).
+* Sort all `2n` events by coordinate — O(n log n).
+* **Key subtlety:** since an endpoint counts as being inside its own interval, whenever a start and an end land on the exact same coordinate, the **START must be processed first** — so a point can still "see" an interval that ends exactly there.
+* Sweep left to right adding/subtracting at each event, and track the coordinate where the running count is highest — that point is covered by the most intervals.
+* The sweep is O(n), so the total is O(n log n).
+
+### Concepts Covered
+
+* Sweep-Line Technique
+* Tie-Breaking in Event Sorting
+* Interval Coverage / Stabbing Number
+
+### Complexity
+
+* **Time:** O(n log n) — dominated by the initial sort
+* **Space:** O(n) for the event array
+
+### Output
+
+* `point_max_coverage.c`
+* Sample run: `Point p = 20 lies in the maximum number of intervals: 3`
+
+---
+
 # Programming Language
 
 * C
@@ -703,29 +901,54 @@ DAA/
 │       ├── results.csv
 │       └── README.md
 │
-└── Lab-03/
-    ├── Q1_Binary_vs_Ternary_Search/
-    │   ├── search_compare.c
+├── Lab-03/
+│   ├── Q1_Binary_vs_Ternary_Search/
+│   │   ├── search_compare.c
+│   │   └── README.md
+│   │
+│   ├── Q2_Defective_Coin/
+│   │   ├── find_lighter_coin.c
+│   │   └── README.md
+│   │
+│   ├── Q3_Max_Min_DC/
+│   │   ├── maxmin.c
+│   │   └── README.md
+│   │
+│   ├── Q4_Strassen_Matrix_Multiplication/
+│   │   ├── strassen.c
+│   │   └── README.md
+│   │
+│   ├── Q5_Special_Pattern_Matrix_Multiplication/
+│   │   ├── special_multiply.c
+│   │   └── README.md
+│   │
+│   └── Q6_Loop_Invariant_Selection_Sort/
+│       ├── selection_sort.c
+│       └── README.md
+│
+└── Lab-04/
+    ├── Q1_Sort_By_Colour/
+    │   ├── sort_by_colour.c
     │   └── README.md
     │
-    ├── Q2_Defective_Coin/
-    │   ├── find_lighter_coin.c
+    ├── Q2_Pair_Sum_Two_Sets/
+    │   ├── pair_sum_two_sets.c
     │   └── README.md
     │
-    ├── Q3_Max_Min_DC/
-    │   ├── maxmin.c
+    ├── Q3_K_Sum/
+    │   ├── k_sum.c
     │   └── README.md
     │
-    ├── Q4_Strassen_Matrix_Multiplication/
-    │   ├── strassen.c
+    ├── Q4_Max_People_Party/
+    │   ├── max_people_party.c
     │   └── README.md
     │
-    ├── Q5_Special_Pattern_Matrix_Multiplication/
-    │   ├── special_multiply.c
+    ├── Q5_Merge_Intervals/
+    │   ├── merge_intervals.c
     │   └── README.md
     │
-    └── Q6_Loop_Invariant_Selection_Sort/
-        ├── selection_sort.c
+    └── Q6_Point_Max_Coverage/
+        ├── point_max_coverage.c
         └── README.md
 ```
 
@@ -759,6 +982,12 @@ After completing these experiments, the following concepts were understood:
 * Structured/Special-Pattern Matrix Multiplication
 * Loop Invariants and Correctness Proofs
 * Selection Sort
+* Stable Bucketing / Counting-Sort Style Partitioning
+* Sorting + Binary Search for Complement Lookups
+* Generalised k-Sum via Sorting and Two-Pointer Scans
+* Sweep-Line / Event Processing Technique
+* Greedy Interval Merging
+* Interval Coverage (Stabbing Number) Problems
 * Performance Analysis of Algorithms
 * Experimental Validation of Theoretical Complexities
 
@@ -787,6 +1016,12 @@ After completing these experiments, the following concepts were understood:
 | Lab-03 | Q4         | Strassen's Matrix Multiplication              | O(n^log₂7) ≈ O(n^2.807)     |
 | Lab-03 | Q5         | Special-Pattern Matrix Multiplication (D&C)   | O(n² log n)                 |
 | Lab-03 | Q6         | Selection Sort (Loop Invariant)               | Θ(n²) worst and best case   |
+| Lab-04 | Q1         | Sort n Items by Colour (Bucketing)            | O(n)                        |
+| Lab-04 | Q2         | Pair Sum from Two Sets (Sort + Binary Search) | O(n log n)                  |
+| Lab-04 | Q3         | k Numbers Summing to T (Sort + Two-Pointer)   | O(n^(k-1) log n)            |
+| Lab-04 | Q4         | Max Simultaneous People (Sweep-Line)          | O(n log n)                  |
+| Lab-04 | Q5         | Merge Overlapping Intervals                   | O(n log n)                  |
+| Lab-04 | Q6         | Point Covered by Most Intervals (Sweep-Line)  | O(n log n)                  |
 
 ---
 
@@ -838,7 +1073,7 @@ Merge Sort, pairwise merging, Strassen's matrix multiplication, special-pattern 
 
 Recursion occurs when a function calls itself to solve smaller versions of the same problem.
 
-Tower of Hanoi, Merge Sort, Strassen's algorithm, and the defective-coin search are examples of recursive algorithms.
+Tower of Hanoi, Merge Sort, Strassen's algorithm, the defective-coin search, and the k-sum combination enumeration in Lab-04 are examples of recursive algorithms.
 
 ---
 
@@ -888,6 +1123,17 @@ A loop invariant is a property that holds true before and after each iteration o
 * **Termination** — when the loop ends, the invariant (combined with the loop's exit condition) yields a useful property that proves correctness.
 
 Selection Sort (Lab-03, Q6) is used to demonstrate this technique.
+
+---
+
+## Sorting-Based Techniques (Lab-04)
+
+Lab-04 focuses on how sorting (or already-sorted input) enables efficient solutions to problems that would otherwise need brute-force checking of all pairs/points:
+
+* **Stable Bucketing** — when the number of categories is small and fixed (e.g. 3 colours), a linear multi-pass bucket scan sorts by category in O(n), preserving order within each bucket if the scan itself never reorders same-category items.
+* **Sort + Binary Search** — sorting one set and binary-searching for the complement of each element in the other set turns an O(n²) pairing problem into O(n log n).
+* **Sort + Two-Pointer Scan** — once an array is sorted, finding two elements that sum to a target can be done in a single O(n) pass with two inward-moving pointers; this generalises to k-sum by fixing k−2 elements via brute force and two-pointering the rest.
+* **Sweep-Line / Event Processing** — converting interval start/end points into `+1`/`−1` events, sorting them by coordinate (O(n log n)), and sweeping through them in a single O(n) pass is a powerful technique for interval-overlap and interval-coverage problems, including careful tie-breaking when events share a coordinate.
 
 ---
 
