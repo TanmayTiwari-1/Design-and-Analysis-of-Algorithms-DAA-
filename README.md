@@ -4,7 +4,7 @@
 
 ## Repository Overview
 
-This repository contains the C implementations and experimental analysis for **Lab-01, Lab-02, Lab-03, and Lab-04** of the **Design and Analysis of Algorithms (DAA)** course.
+This repository contains the C implementations and experimental analysis for **Lab-01, Lab-02, Lab-03, Lab-04, and Lab-05** of the **Design and Analysis of Algorithms (DAA)** course.
 
 The objective of these laboratories is to understand the implementation, analysis, and comparison of different algorithms using practical experiments. Each experiment includes source code, generated datasets, observations, complexity analysis, and README documentation.
 
@@ -813,6 +813,183 @@ Given `n` intervals `[l_i, r_i]` on a line, find a point `p` that lies inside th
 
 ---
 
+# Lab-05
+
+*Order Statistics without Full Sorting, and Sorting Algorithms over File-Stored Data*
+
+All four experiments in Lab-05 revisit the theme of "how much sorting do you really need?" — the first two show that a specific rank (the median, or the K'th smallest element) can be extracted in average-case **O(n)** time without ever fully sorting the array, using **Quickselect**. The last two implement complete, classical **O(n log n)** sorting algorithms (Quick Sort and Heap Sort) operating on data that is generated, read from, and written back to text files.
+
+## Experiment 1 – Find the Median Without Sorting
+
+### Objective
+
+Find the median of a list of `N` numbers without sorting the list, and analyze the time complexity.
+
+### Approach
+
+* The median is simply an order statistic: the element at rank `N/2` (0-indexed) for odd `N`, or the average of the elements at ranks `N/2 - 1` and `N/2` for even `N`.
+* Rather than sorting the whole array just to read off one or two positions, **randomized Quickselect** is used: pick a random pivot, partition the array around it (Lomuto scheme), and recurse into **only** the half of the array that can contain the target rank.
+* Because only one side is ever explored (unlike Quick Sort, which recurses into both halves), the array is never fully sorted.
+* For even `N`, Quickselect is invoked twice (once per middle rank) and the results are averaged.
+
+### Concepts Covered
+
+* Order Statistics
+* Randomized Quickselect
+* Lomuto Partitioning
+* Divide and Conquer (Single-Branch Recursion)
+* Average-Case vs Worst-Case Analysis
+
+### Recurrence
+
+```text
+Average case: T(n) = T(n/2) + O(n)
+Worst case:   T(n) = T(n-1) + O(n)
+```
+
+### Complexity
+
+* **Average-Case Time:** O(n) — geometric series `n + n/2 + n/4 + ... = O(n)`
+* **Worst-Case Time:** O(n²) — only if the pivot is repeatedly the min/max (random pivot selection makes this vanishingly unlikely); reducible to O(n) worst case with the Median-of-Medians pivot strategy
+* **Space:** O(1) extra (in-place); O(log n) average recursion stack, O(n) worst case
+
+### Output
+
+* `1_median_without_sorting.c`
+* Sample run: `{9, 3, 7, 1, 5} → Median = 5.00`; `{9, 3, 7, 1, 5, 2} → Median = 4.00`
+
+---
+
+## Experiment 2 – Find the K'th Smallest Element Without Sorting
+
+### Objective
+
+Find the K'th smallest element in a given list of `N` numbers without sorting the list, and analyze the time complexity.
+
+### Approach
+
+* Direct generalisation of Experiment 1's technique to an arbitrary rank `K` (converted to 0-based index `K-1`).
+* Randomized Quickselect partitions the array around a random pivot; if the pivot lands exactly at index `K-1` it is the answer, otherwise recursion continues into only the side of the partition containing that index.
+* As before, only one branch is ever explored, so the array is never fully sorted — just enough work is done to pin down a single value.
+
+### Concepts Covered
+
+* Order Statistics
+* Randomized Quickselect
+* Lomuto Partitioning
+* Average-Case vs Worst-Case Analysis
+
+### Recurrence
+
+```text
+Average case: T(n) = T(n/2) + O(n)
+Worst case:   T(n) = T(n-1) + O(n)
+```
+
+### Complexity
+
+* **Average-Case Time:** O(n)
+* **Worst-Case Time:** O(n²) (O(n) with Median-of-Medians pivot selection)
+* **Space:** O(1) extra (in-place); O(log n) average recursion stack, O(n) worst case
+
+(Sorting first and then indexing would always cost O(n log n) regardless of `K` — Quickselect avoids that extra work on average.)
+
+### Output
+
+* `2_kth_smallest_without_sorting.c`
+* Sample run: for `{9, 3, 7, 1, 5, 2}` (sorted: `1 2 3 5 7 9`), `K=3 → 3`, `K=1 → 1`
+
+---
+
+## Experiment 3 – Quick Sort of N Random Elements Stored in a File
+
+### Objective
+
+Implement Quick Sort of `N` random elements stored in a file.
+
+### Approach
+
+* Generate `N` random integers and write them to `input.txt`.
+* Read the `N` numbers back from `input.txt` into an array.
+* Sort the array in place using classic Quick Sort with Lomuto partitioning (last element as pivot).
+* Write the sorted array to `output.txt` and also display it on screen.
+
+### Concepts Covered
+
+* Divide and Conquer
+* Quick Sort / Lomuto Partitioning
+* File I/O in C (`fopen`, `fscanf`, `fprintf`)
+* Best/Average/Worst-Case Analysis
+
+### Recurrence
+
+```text
+Best/Average case: T(n) = 2T(n/2) + O(n)
+Worst case:         T(n) = T(n-1) + O(n)
+```
+
+### Complexity
+
+* **Best/Average-Case Time:** O(n log n)
+* **Worst-Case Time:** O(n²) — occurs on already-sorted/reverse-sorted data with a poor pivot choice; very unlikely here since the input is randomly generated
+* **Space:** O(1) extra (in-place); O(log n) average recursion stack, O(n) worst case
+* **File I/O overhead:** O(n) to read, O(n) to write (does not change asymptotic sorting complexity)
+
+### Output
+
+* `3_quicksort_file.c`
+* `input.txt` — unsorted, randomly generated numbers
+* `output.txt` — the same numbers sorted in ascending order
+* Sample run: 20 random numbers generated, read, sorted, and written back correctly
+
+---
+
+## Experiment 4 – Heap Sort of N Randomly Generated Elements Stored in a File
+
+### Objective
+
+Implement Heap Sort to sort `N` randomly generated elements stored in a file, and do the complexity analysis.
+
+### Approach
+
+* Generate `N` random integers and write them to `input.txt`.
+* Read the `N` numbers back from `input.txt` into an array.
+* **Build a max-heap** in place (bottom-up heapify from the last non-leaf node to the root).
+* Repeatedly **swap the root with the last element** of the current heap, shrink the heap size by 1, and heapify the new root, `n-1` times, to produce a fully sorted array.
+* Write the sorted array to `output.txt` and also display it on screen.
+
+### Concepts Covered
+
+* Heap Data Structure (Max-Heap)
+* Heapify / Build-Heap
+* Heap Sort
+* File I/O in C
+* Best/Average/Worst-Case Analysis (Uniform for Heap Sort)
+
+### Complexity Derivation
+
+```text
+Build heap (bottom-up):        O(n)
+n extractions, each O(log k):  Σ(k=1 to n) O(log k) = O(n log n)
+Total: T(n) = O(n) + O(n log n) = O(n log n)
+```
+
+### Complexity
+
+* **Best/Average/Worst-Case Time:** O(n log n) for **all** cases — Heap Sort's performance depends only on `n`, not on the initial order of the data, unlike Quick Sort
+* **Space:** O(1) extra — sorts in place directly inside the input array, no auxiliary array needed
+* **Stability:** Not stable
+* **File I/O overhead:** O(n) to read, O(n) to write (does not change asymptotic sorting complexity)
+
+### Output
+
+* `4_heapsort_file.c`
+* `input.txt` — unsorted, randomly generated numbers
+* `output.txt` — the same numbers sorted in ascending order
+* Sample run: 20 random numbers generated, read, heap-sorted, and written back correctly
+
+---
+
 # Programming Language
 
 * C
@@ -926,29 +1103,50 @@ DAA/
 │       ├── selection_sort.c
 │       └── README.md
 │
-└── Lab-04/
-    ├── Q1_Sort_By_Colour/
-    │   ├── sort_by_colour.c
+├── Lab-04/
+│   ├── Q1_Sort_By_Colour/
+│   │   ├── sort_by_colour.c
+│   │   └── README.md
+│   │
+│   ├── Q2_Pair_Sum_Two_Sets/
+│   │   ├── pair_sum_two_sets.c
+│   │   └── README.md
+│   │
+│   ├── Q3_K_Sum/
+│   │   ├── k_sum.c
+│   │   └── README.md
+│   │
+│   ├── Q4_Max_People_Party/
+│   │   ├── max_people_party.c
+│   │   └── README.md
+│   │
+│   ├── Q5_Merge_Intervals/
+│   │   ├── merge_intervals.c
+│   │   └── README.md
+│   │
+│   └── Q6_Point_Max_Coverage/
+│       ├── point_max_coverage.c
+│       └── README.md
+│
+└── Lab-05/
+    ├── Q1_Median_Without_Sorting/
+    │   ├── 1_median_without_sorting.c
     │   └── README.md
     │
-    ├── Q2_Pair_Sum_Two_Sets/
-    │   ├── pair_sum_two_sets.c
+    ├── Q2_Kth_Smallest_Without_Sorting/
+    │   ├── 2_kth_smallest_without_sorting.c
     │   └── README.md
     │
-    ├── Q3_K_Sum/
-    │   ├── k_sum.c
+    ├── Q3_Quicksort_File/
+    │   ├── 3_quicksort_file.c
+    │   ├── input.txt
+    │   ├── output.txt
     │   └── README.md
     │
-    ├── Q4_Max_People_Party/
-    │   ├── max_people_party.c
-    │   └── README.md
-    │
-    ├── Q5_Merge_Intervals/
-    │   ├── merge_intervals.c
-    │   └── README.md
-    │
-    └── Q6_Point_Max_Coverage/
-        ├── point_max_coverage.c
+    └── Q4_Heapsort_File/
+        ├── 4_heapsort_file.c
+        ├── input.txt
+        ├── output.txt
         └── README.md
 ```
 
@@ -988,6 +1186,11 @@ After completing these experiments, the following concepts were understood:
 * Sweep-Line / Event Processing Technique
 * Greedy Interval Merging
 * Interval Coverage (Stabbing Number) Problems
+* Order Statistics (Median, K'th Smallest)
+* Randomized Quickselect
+* Quick Sort
+* Heap Data Structure and Heap Sort
+* File I/O in C for Algorithmic Input/Output
 * Performance Analysis of Algorithms
 * Experimental Validation of Theoretical Complexities
 
@@ -1022,6 +1225,10 @@ After completing these experiments, the following concepts were understood:
 | Lab-04 | Q4         | Max Simultaneous People (Sweep-Line)          | O(n log n)                  |
 | Lab-04 | Q5         | Merge Overlapping Intervals                   | O(n log n)                  |
 | Lab-04 | Q6         | Point Covered by Most Intervals (Sweep-Line)  | O(n log n)                  |
+| Lab-05 | Q1         | Median Without Sorting (Quickselect)          | O(n) avg, O(n²) worst       |
+| Lab-05 | Q2         | K'th Smallest Without Sorting (Quickselect)   | O(n) avg, O(n²) worst       |
+| Lab-05 | Q3         | Quick Sort on File-Stored Data                | O(n log n) avg, O(n²) worst |
+| Lab-05 | Q4         | Heap Sort on File-Stored Data                 | O(n log n) all cases        |
 
 ---
 
@@ -1065,7 +1272,7 @@ A divide-and-conquer algorithm generally follows three steps:
 Divide → Conquer → Combine
 ```
 
-Merge Sort, pairwise merging, Strassen's matrix multiplication, special-pattern matrix multiplication, the max-min algorithm, and the defective-coin search are all important examples used in these labs.
+Merge Sort, pairwise merging, Strassen's matrix multiplication, special-pattern matrix multiplication, the max-min algorithm, the defective-coin search, Quick Sort, and Quickselect (order-statistic selection) are all important examples used in these labs.
 
 ---
 
@@ -1073,7 +1280,7 @@ Merge Sort, pairwise merging, Strassen's matrix multiplication, special-pattern 
 
 Recursion occurs when a function calls itself to solve smaller versions of the same problem.
 
-Tower of Hanoi, Merge Sort, Strassen's algorithm, the defective-coin search, and the k-sum combination enumeration in Lab-04 are examples of recursive algorithms.
+Tower of Hanoi, Merge Sort, Strassen's algorithm, the defective-coin search, the k-sum combination enumeration in Lab-04, Quick Sort, Quickselect, and Heap Sort's `heapify` routine in Lab-05 are examples of recursive algorithms.
 
 ---
 
@@ -1098,6 +1305,18 @@ T(n) = 7T(n/2) + O(n²)
 
 Special-Pattern Matrix Multiplication:
 T(n) = 2T(n/2) + O(n²)
+
+Quickselect (average case):
+T(n) = T(n/2) + O(n)
+
+Quickselect (worst case):
+T(n) = T(n-1) + O(n)
+
+Quick Sort (best/average case):
+T(n) = 2T(n/2) + O(n)
+
+Quick Sort (worst case):
+T(n) = T(n-1) + O(n)
 ```
 
 ---
@@ -1110,7 +1329,7 @@ The Master Theorem is useful for analyzing recurrences of the form:
 T(n) = aT(n/b) + f(n)
 ```
 
-It can be used to derive the complexity of standard Merge Sort, Three-Way Merge Sort, Strassen's algorithm, and the special-pattern matrix multiplication algorithm.
+It can be used to derive the complexity of standard Merge Sort, Three-Way Merge Sort, Strassen's algorithm, the special-pattern matrix multiplication algorithm, and the best/average case of Quick Sort.
 
 ---
 
@@ -1137,8 +1356,21 @@ Lab-04 focuses on how sorting (or already-sorted input) enables efficient soluti
 
 ---
 
+## Order Statistics and Quickselect (Lab-05)
+
+Lab-05 focuses on the idea that **you don't always need a full sort to answer a question about order** — and, when you do need a full sort, different classical algorithms trade off worst-case guarantees for simplicity or in-place behaviour:
+
+* **Quickselect** — a Quick-Sort-like algorithm that partitions around a (randomly chosen) pivot but recurses into only the single side of the partition that can contain the target rank, giving O(n) average-case time to find a median or K'th smallest element, versus O(n log n) for "sort then index."
+* **Randomized Pivot Selection** — protects against the O(n²) worst case that a fixed pivot choice (e.g., always the last element) would suffer on already-sorted or adversarial input.
+* **Quick Sort** — a complete, in-place, divide-and-conquer sort with excellent average-case O(n log n) performance, but an O(n²) worst case on unlucky pivot sequences.
+* **Heap Sort** — builds a max-heap in O(n) and then performs n extract-max operations at O(log n) each, giving a **guaranteed** O(n log n) time bound in the best, average, *and* worst case, with O(1) extra space — at the cost of not being a stable sort.
+* **File-Based Algorithm I/O** — generating a dataset, persisting it to a text file, reading it back into memory for processing, and writing the processed result back out, using standard C file I/O (`fopen`, `fscanf`, `fprintf`, `fclose`).
+
+---
+
 # Software Requirements
 
 * GCC Compiler
 * Visual Studio Code / Code::Blocks / Dev-C++
 * Windows / Linux / macOS
+* 
