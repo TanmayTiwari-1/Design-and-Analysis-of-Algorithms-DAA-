@@ -4,7 +4,7 @@
 
 ## Repository Overview
 
-This repository contains the C implementations and experimental analysis for **Lab-01, Lab-02, Lab-03, Lab-04, and Lab-05** of the **Design and Analysis of Algorithms (DAA)** course.
+This repository contains the C implementations and experimental analysis for **Lab-01, Lab-02, Lab-03, Lab-04, Lab-05, and Lab-06** of the **Design and Analysis of Algorithms (DAA)** course.
 
 The objective of these laboratories is to understand the implementation, analysis, and comparison of different algorithms using practical experiments. Each experiment includes source code, generated datasets, observations, complexity analysis, and README documentation.
 
@@ -990,6 +990,178 @@ Total: T(n) = O(n) + O(n log n) = O(n log n)
 
 ---
 
+# Lab-06
+
+*BTech (CS-B and CE), 3rd Semester | August 31, 2026 | Instructor: Dr. Ajaya Kumar Dash*
+
+Lab-06 moves away from implementing a single named algorithm and instead asks for a **complexity audit**: for a batch of common 1D array operations, 2D square-matrix operations, an O(n log n) divide-and-conquer convolution algorithm, and a reversal-based sorting scheme, derive the worst-case (or amortized) complexity, justify the input representation chosen, and validate each claim with a C program.
+
+## Experiment 1 – 1D Array Operations and Their Complexities
+
+### Objective
+
+Given an array of `n` unsorted integers, determine the worst-case complexity of nine common operations, choose a suitable input representation, implement each in C, and validate the derived complexity experimentally.
+
+### Approach & Complexity
+
+| # | Operation | Approach | Worst-Case Complexity |
+| - | --------- | -------- | ---------------------- |
+| (i) | Maximum element | Single linear scan keeping a running max | O(n) |
+| (ii) | First and second largest | One pass tracking `max1` and `max2`, updating both as needed | O(n) |
+| (iii) | Mean | Sum all elements in one pass, divide by `n` | O(n) |
+| (iv) | Median | Sort then index (O(n log n)); or randomized Quickselect on the two middle ranks for O(n) average (see Lab-05, Q1) | O(n log n) worst-case via sort, O(n) average via Quickselect |
+| (v) | Standard deviation | One pass for the mean, a second pass to sum squared deviations | O(n) |
+| (vi) | Mode | Hashing/frequency counting for O(n) average, or sort-and-scan for a guaranteed O(n log n) without extra hashing structure | O(n) average (hashing), O(n log n) worst-case guaranteed (sorting) |
+| (vii) | Removing all duplicates | Sort then single pass skipping repeats (O(n log n)); or hash-set membership test per element for O(n) average with O(n) extra space | O(n log n) via sorting, O(n) average via hashing |
+| (viii) | Reversing the array | Two-pointer swap from both ends moving inward, `n/2` swaps | O(n) |
+| (ix) | Partitioning around a random pivot (all elements `< pivot` placed *after* all elements `≥ pivot`) | A single Lomuto/Hoare-style scan with the comparison direction flipped, swapping into place in one pass | O(n) |
+
+### Concepts Covered
+
+* Array-Based Order Statistics
+* Single-Pass and Two-Pass Linear Algorithms
+* Sorting vs Hashing Trade-offs
+* Randomized Quickselect (recap from Lab-05)
+* Lomuto/Hoare-Style Partitioning
+* Worst-Case vs Average-Case Analysis
+
+### Output
+
+* `array_ops.c`
+* Experimental timing/comparison counts validating each operation's derived complexity on randomly generated arrays
+
+---
+
+## Experiment 2 – 2D Square Matrix Operations and Their Complexities
+
+### Objective
+
+Given `n × n` square matrices, determine the worst-case computational complexity of seven common matrix operations, choose a suitable input representation, implement each in C, and validate the derived complexity experimentally.
+
+### Approach & Complexity
+
+| # | Operation | Approach | Worst-Case Complexity |
+| - | --------- | -------- | ---------------------- |
+| (i) | Matrix addition | Element-wise addition over all `n²` cells | O(n²) |
+| (ii) | Matrix multiplication | Naive triple-nested loop (O(n³)); Strassen's method reduces this to O(n^log₂7) ≈ O(n^2.807) (see Lab-03, Q4) | O(n³) naive, O(n^2.807) via Strassen |
+| (iii) | Zero-matrix check | Scan all `n²` entries; short-circuit and return false as soon as a nonzero entry is found | O(n²) |
+| (iv) | Symmetric-matrix check | Compare `A[i][j]` with `A[j][i]` for all `i < j`, short-circuiting on the first mismatch | O(n²) |
+| (v) | Determinant | Cofactor expansion is O(n!) and impractical; Gaussian elimination (LU decomposition) reduces the matrix to upper-triangular form and multiplies the diagonal | O(n³) via Gaussian elimination |
+| (vi) | Transpose in situ | Swap `A[i][j]` with `A[j][i]` for all `i < j`, in place, no auxiliary matrix | O(n²) time, O(1) extra space |
+| (vii) | Eigenvalues and eigenvectors | No closed-form root exists for the characteristic polynomial once `n ≥ 5` (Abel–Ruffini), so exact symbolic solutions aren't generally computable; iterative numerical methods (e.g. the QR algorithm) converge to all eigenvalues/eigenvectors | O(n³) per iteration (numerical/iterative), no general exact polynomial-time closed form |
+
+### Concepts Covered
+
+* Matrix Representation (2D Array)
+* Element-Wise vs Triple-Nested-Loop Algorithms
+* Strassen's Algorithm (recap from Lab-03)
+* Gaussian Elimination / LU Decomposition
+* In-Place Transposition
+* Iterative Numerical Methods (QR Algorithm) vs Closed-Form Solutions
+
+### Output
+
+* `matrix_ops.c`
+* Experimental timing/operation counts validating each operation's derived complexity on randomly generated square matrices
+
+---
+
+## Experiment 3 – Convolution of Two Vectors via Divide and Conquer
+
+### Objective
+
+Given vectors `A` (length `m`) and `B` (length `n`, with `n ≥ m`), compute the convolution
+
+```text
+C[k] = Σ (j = 0 to m-1) A[j]·B[k-j]
+```
+
+using an O(n log n) divide-and-conquer algorithm, and validate it in C.
+
+### Approach
+
+* Naive convolution multiplies every pair `(A[j], B[k-j])`, costing O(mn) — quadratic when `m` and `n` are comparable.
+* Convolution of two sequences is equivalent to **polynomial multiplication**, where `A` and `B` are treated as coefficient vectors.
+* Padding both vectors to a common length that is a power of 2 (at least `m + n − 1`), the **Fast Fourier Transform (FFT)** is used to transform `A` and `B` into the frequency domain in O(n log n) via the standard FFT divide-and-conquer recursion (splitting each polynomial into even- and odd-indexed coefficients and combining with the "butterfly" step).
+* The pointwise product of the two transformed vectors is computed in O(n) — this pointwise product in the frequency domain corresponds exactly to convolution in the original domain.
+* An **inverse FFT** (same O(n log n) divide-and-conquer structure) converts the pointwise product back into the coefficient (time) domain, yielding `C`.
+* Because FFT/IFFT dominate, and the pointwise multiply is linear, the overall algorithm runs in O(n log n).
+
+### Concepts Covered
+
+* Divide and Conquer
+* Polynomial Multiplication as Convolution
+* Fast Fourier Transform (FFT) and Inverse FFT
+* Recurrence Relations
+* Master Theorem
+
+### Recurrence
+
+```text
+T(n) = 2T(n/2) + O(n)
+```
+
+### Complexity
+
+* **Time:** O(n log n) — versus O(mn) for the naive double loop
+* **Space:** O(n) for the padded, complex-valued transform arrays
+
+### Output
+
+* `convolution_fft.c`
+* Resulting convolution vector `C`, cross-checked against the O(mn) naive convolution on small random inputs
+
+---
+
+## Experiment 4 – Sorting via the Reversal Procedure
+
+### Objective
+
+Given a permutation `p` of `1..n`, using only `reverse(p, i, j)` (which reverses the subsequence `p_i..p_j`):
+
+* Show that any permutation can be sorted using O(n) reversals.
+* Design an algorithm that sorts `p` in O(n log² n) total **cost**, where the cost of a single `reverse(p, i, j)` equals its length `|j − i| + 1`, and analyze both correctness and running time.
+
+### Approach — O(n) Reversals (Pancake-Sort Style)
+
+* Repeat, for `i` from `n` down to `2`: find the position of the value `i` within `p[1..i]`, reverse the prefix up to that position to bring `i` to the front, then reverse the prefix `p[1..i]` to move `i` into its final position `i`.
+* Each pass uses at most 2 reversals and correctly places one more element, so at most `2(n-1) = O(n)` reversals suffice to sort the whole permutation — this establishes the existence bound.
+
+### Approach — O(n log² n) Cost (Divide and Conquer on Cost)
+
+* Charging a reversal its length means repeatedly reversing large prefixes (as above) can cost O(n) per placed element, giving O(n²) total cost — too expensive.
+* Instead, a **divide-and-conquer merge-based** strategy is used: recursively sort the left and right halves of `p` (by value), then "merge" the two halves into sorted order using a bounded number of reversals whose lengths are proportional to the size of the region being fixed at that level, analogous to Merge Sort's merge step but implemented purely via `reverse` calls that bring out-of-place blocks into position.
+* At each of the O(log n) levels of recursion, the total length of all reversals performed is O(n) (every element participates in at most a constant number of reversals per level, and each reversal's cost is bounded by the size of the region it acts on), giving O(n) cost per level.
+* Summed over O(log n) levels, the total sorting cost is O(n log n) for the merge structure itself; accounting for the extra O(log n) factor needed to locate and align blocks correctly within each level (a search/bookkeeping overhead per level) yields the O(n log² n) total cost bound.
+* **Correctness** follows by induction: after the two halves are individually sorted (by the recursive hypothesis) and correctly interleaved by the bounded reversals in the merge step, the whole array is sorted; the base case (a single element) requires zero reversals and is trivially sorted.
+
+### Concepts Covered
+
+* Reversal (Pancake-Flip) Sorting
+* Divide and Conquer
+* Cost-Bounded Algorithm Design (as opposed to plain operation-count bounds)
+* Recurrence Relations
+* Proof of Correctness by Induction
+
+### Recurrence
+
+```text
+T(n) = 2T(n/2) + O(n log n)   [cost, per level: O(n) reversal length × O(log n) bookkeeping]
+```
+
+### Complexity
+
+* **Number of reversals (existence bound):** O(n)
+* **Total cost (with cost = length of reversal):** O(n log² n)
+* **Space:** O(n) plus O(log n) recursion stack
+
+### Output
+
+* `reversal_sort.c`
+* Sample run: permutation sorted to `[1, 2, ..., n]`, with the total number of reversals and total cost (sum of reversal lengths) printed and compared against the O(n) and O(n log² n) bounds respectively
+
+---
+
 # Programming Language
 
 * C
@@ -1128,25 +1300,42 @@ DAA/
 │       ├── point_max_coverage.c
 │       └── README.md
 │
-└── Lab-05/
-    ├── Q1_Median_Without_Sorting/
-    │   ├── 1_median_without_sorting.c
+├── Lab-05/
+│   ├── Q1_Median_Without_Sorting/
+│   │   ├── 1_median_without_sorting.c
+│   │   └── README.md
+│   │
+│   ├── Q2_Kth_Smallest_Without_Sorting/
+│   │   ├── 2_kth_smallest_without_sorting.c
+│   │   └── README.md
+│   │
+│   ├── Q3_Quicksort_File/
+│   │   ├── 3_quicksort_file.c
+│   │   ├── input.txt
+│   │   ├── output.txt
+│   │   └── README.md
+│   │
+│   └── Q4_Heapsort_File/
+│       ├── 4_heapsort_file.c
+│       ├── input.txt
+│       ├── output.txt
+│       └── README.md
+│
+└── Lab-06/
+    ├── Q1_Array_Operations_Complexity/
+    │   ├── array_ops.c
     │   └── README.md
     │
-    ├── Q2_Kth_Smallest_Without_Sorting/
-    │   ├── 2_kth_smallest_without_sorting.c
+    ├── Q2_Matrix_Operations_Complexity/
+    │   ├── matrix_ops.c
     │   └── README.md
     │
-    ├── Q3_Quicksort_File/
-    │   ├── 3_quicksort_file.c
-    │   ├── input.txt
-    │   ├── output.txt
+    ├── Q3_Convolution_FFT/
+    │   ├── convolution_fft.c
     │   └── README.md
     │
-    └── Q4_Heapsort_File/
-        ├── 4_heapsort_file.c
-        ├── input.txt
-        ├── output.txt
+    └── Q4_Reversal_Sort/
+        ├── reversal_sort.c
         └── README.md
 ```
 
@@ -1191,6 +1380,12 @@ After completing these experiments, the following concepts were understood:
 * Quick Sort
 * Heap Data Structure and Heap Sort
 * File I/O in C for Algorithmic Input/Output
+* Complexity Auditing of Common 1D Array Operations
+* Complexity Auditing of Common 2D Matrix Operations (incl. Determinant, Symmetry, Eigenvalues)
+* Gaussian Elimination / LU Decomposition for Determinants
+* Convolution as Polynomial Multiplication
+* Fast Fourier Transform (FFT) and Inverse FFT
+* Reversal (Pancake-Flip) Sorting and Cost-Bounded Algorithm Design
 * Performance Analysis of Algorithms
 * Experimental Validation of Theoretical Complexities
 
@@ -1229,6 +1424,11 @@ After completing these experiments, the following concepts were understood:
 | Lab-05 | Q2         | K'th Smallest Without Sorting (Quickselect)   | O(n) avg, O(n²) worst       |
 | Lab-05 | Q3         | Quick Sort on File-Stored Data                | O(n log n) avg, O(n²) worst |
 | Lab-05 | Q4         | Heap Sort on File-Stored Data                 | O(n log n) all cases        |
+| Lab-06 | Q1         | 1D Array Operations (max/mean/median/etc.)    | O(n) to O(n log n) depending on op |
+| Lab-06 | Q2         | 2D Matrix Operations (add/mult/det/eigen/etc.)| O(n²) to O(n³) depending on op |
+| Lab-06 | Q3         | Vector Convolution via FFT (D&C)              | O(n log n)                  |
+| Lab-06 | Q4         | Sorting via Reversals — existence bound       | O(n) reversals               |
+| Lab-06 | Q4         | Sorting via Reversals — cost-bounded (D&C)    | O(n log² n) total cost      |
 
 ---
 
@@ -1272,7 +1472,7 @@ A divide-and-conquer algorithm generally follows three steps:
 Divide → Conquer → Combine
 ```
 
-Merge Sort, pairwise merging, Strassen's matrix multiplication, special-pattern matrix multiplication, the max-min algorithm, the defective-coin search, Quick Sort, and Quickselect (order-statistic selection) are all important examples used in these labs.
+Merge Sort, pairwise merging, Strassen's matrix multiplication, special-pattern matrix multiplication, the max-min algorithm, the defective-coin search, Quick Sort, Quickselect (order-statistic selection), the FFT-based convolution algorithm, and the cost-bounded reversal-sort merge strategy are all important examples used in these labs.
 
 ---
 
@@ -1280,7 +1480,7 @@ Merge Sort, pairwise merging, Strassen's matrix multiplication, special-pattern 
 
 Recursion occurs when a function calls itself to solve smaller versions of the same problem.
 
-Tower of Hanoi, Merge Sort, Strassen's algorithm, the defective-coin search, the k-sum combination enumeration in Lab-04, Quick Sort, Quickselect, and Heap Sort's `heapify` routine in Lab-05 are examples of recursive algorithms.
+Tower of Hanoi, Merge Sort, Strassen's algorithm, the defective-coin search, the k-sum combination enumeration in Lab-04, Quick Sort, Quickselect, Heap Sort's `heapify` routine in Lab-05, the FFT/IFFT recursion, and the divide-and-conquer reversal-sort merge step in Lab-06 are examples of recursive algorithms.
 
 ---
 
@@ -1317,6 +1517,12 @@ T(n) = 2T(n/2) + O(n)
 
 Quick Sort (worst case):
 T(n) = T(n-1) + O(n)
+
+FFT-Based Convolution:
+T(n) = 2T(n/2) + O(n)
+
+Reversal Sort (cost-bounded, D&C merge):
+T(n) = 2T(n/2) + O(n log n)
 ```
 
 ---
@@ -1329,7 +1535,7 @@ The Master Theorem is useful for analyzing recurrences of the form:
 T(n) = aT(n/b) + f(n)
 ```
 
-It can be used to derive the complexity of standard Merge Sort, Three-Way Merge Sort, Strassen's algorithm, the special-pattern matrix multiplication algorithm, and the best/average case of Quick Sort.
+It can be used to derive the complexity of standard Merge Sort, Three-Way Merge Sort, Strassen's algorithm, the special-pattern matrix multiplication algorithm, the best/average case of Quick Sort, the FFT-based convolution algorithm, and the cost-bounded reversal-sort merge strategy.
 
 ---
 
@@ -1368,9 +1574,19 @@ Lab-05 focuses on the idea that **you don't always need a full sort to answer a 
 
 ---
 
+## Complexity Auditing, Convolution, and Reversal Sorting (Lab-06)
+
+Lab-06 shifts from implementing one named algorithm per experiment to systematically deriving the correct complexity for a *set* of related operations, and to designing an algorithm around a non-standard cost model:
+
+* **1D Array Complexity Audit** — for a fixed unsorted array, operations split into inherently linear ones (max, mean, standard deviation, reversal, partitioning) and rank-dependent ones (median, mode, duplicate removal) where the choice between hashing (average-case linear) and sorting (guaranteed O(n log n)) matters.
+* **2D Matrix Complexity Audit** — most elementwise or structural checks (addition, zero/symmetry checks, transpose) are O(n²), while multiplication and determinant computation are inherently cubic (or better, via Strassen), and eigenvalue/eigenvector computation has no general closed-form solution for `n ≥ 5`, requiring iterative numerical methods instead.
+* **Convolution via FFT** — recognizing that vector convolution is equivalent to polynomial multiplication lets an O(mn) naive computation be replaced by an O(n log n) divide-and-conquer FFT/pointwise-multiply/inverse-FFT pipeline.
+* **Reversal (Pancake) Sorting** — sorting a permutation using only subsequence reversals can always be done in O(n) reversals; but once each reversal is charged a *cost* equal to its length, a naive approach becomes O(n²), motivating a divide-and-conquer merge strategy that achieves O(n log² n) total cost — an example of designing an algorithm around a non-uniform operation-cost model rather than a simple operation count.
+
+---
+
 # Software Requirements
 
 * GCC Compiler
 * Visual Studio Code / Code::Blocks / Dev-C++
 * Windows / Linux / macOS
-* 
