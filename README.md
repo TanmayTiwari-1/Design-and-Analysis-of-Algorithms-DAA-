@@ -992,8 +992,6 @@ Total: T(n) = O(n) + O(n log n) = O(n log n)
 
 # Lab-06
 
-*BTech (CS-B and CE), 3rd Semester | August 31, 2026 | Instructor: Dr. Ajaya Kumar Dash*
-
 Lab-06 moves away from implementing a single named algorithm and instead asks for a **complexity audit**: for a batch of common 1D array operations, 2D square-matrix operations, an O(n log n) divide-and-conquer convolution algorithm, and a reversal-based sorting scheme, derive the worst-case (or amortized) complexity, justify the input representation chosen, and validate each claim with a C program.
 
 ## Experiment 1 – 1D Array Operations and Their Complexities
