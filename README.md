@@ -4,7 +4,7 @@
 
 ## Repository Overview
 
-This repository contains the C implementations and experimental analysis for **Lab-01, Lab-02, Lab-03, Lab-04, Lab-05, and Lab-06** of the **Design and Analysis of Algorithms (DAA)** course.
+This repository contains the C implementations and experimental analysis for **Lab-01, Lab-02, Lab-03, Lab-04, Lab-05, Lab-06, and Lab-07** of the **Design and Analysis of Algorithms (DAA)** course.
 
 The objective of these laboratories is to understand the implementation, analysis, and comparison of different algorithms using practical experiments. Each experiment includes source code, generated datasets, observations, complexity analysis, and README documentation.
 
@@ -183,12 +183,12 @@ Analyze the asymptotic worst-case running time of the primary Dictionary ADT ope
 
 | Data Structure              | Search   | Insert | Delete | Maximum | Minimum | Predecessor | Successor |
 | --------------------------- | -------- | ------ | ------ | ------- | ------- | ----------- | --------- |
-| Unsorted Array              | O(n)     | O(1)   | O(n)   | O(n)    | O(n)    | O(n)        | O(n)      |
-| Sorted Array                | O(log n) | O(n)   | O(n)   | O(1)    | O(1)    | O(1)        | O(1)      |
-| Singly Linked Unsorted List | O(n)     | O(1)   | O(n)   | O(n)    | O(n)    | O(n)        | O(n)      |
-| Singly Linked Sorted List   | O(n)     | O(n)   | O(n)   | O(n)    | O(1)    | O(n)        | O(1)      |
-| Doubly Linked Unsorted List | O(n)     | O(1)   | O(1)   | O(n)    | O(n)    | O(1)*       | O(1)*     |
-| Doubly Linked Sorted List   | O(n)     | O(n)   | O(1)   | O(1)    | O(1)    | O(1)*       | O(1)*     |
+| Unsorted Array               | O(n)     | O(1)   | O(n)   | O(n)    | O(n)    | O(n)        | O(n)      |
+| Sorted Array                  | O(log n) | O(n)   | O(n)   | O(1)    | O(1)    | O(1)        | O(1)      |
+| Singly Linked Unsorted List  | O(n)     | O(1)   | O(n)   | O(n)    | O(n)    | O(n)        | O(n)      |
+| Singly Linked Sorted List    | O(n)     | O(n)   | O(n)   | O(n)    | O(1)    | O(n)        | O(1)      |
+| Doubly Linked Unsorted List  | O(n)     | O(1)   | O(1)   | O(n)    | O(n)    | O(1)*       | O(1)*     |
+| Doubly Linked Sorted List    | O(n)     | O(n)   | O(1)   | O(1)    | O(1)    | O(1)*       | O(1)*     |
 
 `*` Predecessor/successor are O(1) when a pointer to the relevant node is already available.
 
@@ -1160,6 +1160,228 @@ T(n) = 2T(n/2) + O(n log n)   [cost, per level: O(n) reversal length × O(log n)
 
 ---
 
+# Lab-07
+
+*BTech (CS-B and CE), 3rd Semester | September 8, 2026 | Instructor: Dr. Ajaya Kumar Dash*
+
+Lab-07 leaves array/matrix manipulation behind and applies **algorithm design and analysis to classic recreational puzzles**. Each experiment states a puzzle in words, asks for a general algorithm (not just a solution to one instance), and requires a compact formula or closed form wherever one exists. Techniques used across the seven experiments include exhaustive geometric search, generalized dynamic programming, the Frame–Stewart algorithm, breadth-first search over an implicit state graph, a constructive parity argument, the sweep-line technique (revisited from Lab-04), and the classic matrix-chain DP.
+
+## Experiment 1 – Invert the Coin-Triangle
+
+### Objective
+
+An equilateral triangle is formed from closely packed coins (or pennies), with centres on the points of a triangular lattice. Design an algorithm to flip the triangle upside down in the minimum number of moves, where each move slides one coin to a new lattice position. Give a compact formula for the minimum number of moves, implement the algorithm in C, and derive its complexity.
+
+### Approach
+
+* Each coin in row `r` (0-indexed), column `c`, is given **integer** lattice coordinates `X = 2*col - row`, `R = row` — doubling the horizontal axis avoids any floating-point arithmetic for the usual `√3/2` row spacing.
+* Flipping the triangle 180° corresponds to the coordinate map `(X, R) → (A - X, B - R)` for some integer shift `(A, B)`.
+* The program brute-force searches over candidate shifts `(A, B)` and keeps the one that **maximises the overlap** between the original coin positions and the rotated-and-shifted coin positions; the un-overlapped coins are exactly the ones that must physically move.
+* This search independently reproduces the well-known closed-form formula `M(n) = ⌊T/3⌋ = ⌊n(n+1)/6⌋`, where `T = n(n+1)/2` is the total number of coins in an `n`-row triangle.
+
+### Concepts Covered
+
+* Combinatorial/Geometric Search
+* Lattice Coordinate Representation
+* Closed-Form Formula Derivation
+* Exhaustive Search Validation of a Formula
+
+### Complexity
+
+* **Time (brute-force search + verification):** O(n⁶) with the simple linear "contains" scan used (reducible to O(n⁴) with a hash-set lookup)
+* **Time (closed-form formula):** O(1)
+* **Space:** O(n²) to store all coin coordinates
+
+### Output
+
+* `coin_triangle.c`
+* Sample run: verified for `n = 2..6` rows → 1, 2, 3, 5, 7 minimum moves, matching `⌊T/3⌋` exactly (including the classic "10-coin triangle needs 3 moves" result)
+
+---
+
+## Experiment 2 – Super Egg Testing Experiment
+
+### Objective
+
+A firm has two identical super-strong eggs and wants to determine the highest floor of a 100-storey building from which an egg can be dropped without breaking, using the minimum number of droppings guaranteed to work in the worst case. Design a dynamic programming generalization for `E` eggs and `F` floors, implement it in C, and derive the complexity.
+
+### Approach
+
+* Reformulate as: `best[t][e]` = the maximum number of floors distinguishable using `e` eggs and `t` trials.
+* Recurrence: `best[t][e] = best[t-1][e-1] + best[t-1][e] + 1` — if the egg dropped on some floor breaks, the problem reduces to `e-1` eggs and `t-1` trials below that floor; if it survives, it reduces to `e` eggs and `t-1` trials above that floor; the tested floor itself is also resolved.
+* Increase `t` from 1 upward until `best[t][E] ≥ F`; that smallest `t` is the guaranteed-worst-case answer.
+
+### Concepts Covered
+
+* Dynamic Programming
+* Generalization of a Classic Puzzle to Arbitrary Parameters
+* Worst-Case Guarantee Analysis
+
+### Complexity
+
+* **Time:** O(E · F)
+* **Space:** O(E · F) for the DP table (reducible to O(E) with a rolling array)
+
+### Output
+
+* `egg_drop.c`
+* Sample run: `E = 2, F = 100 → 14` trials (the classic textbook result); generalized and verified for `E = 3, F = 200 → 11` trials
+
+---
+
+## Experiment 3 – Reve's Puzzle (Tower of Hanoi, 4 Pegs)
+
+### Objective
+
+Eight disks of different sizes sit on the first of four pegs, in order of size. Transfer all disks to another peg, one at a time, never placing a larger disk on a smaller one. Devise an algorithm that solves the puzzle in 33 moves, and generalize it to `n` disks. Implement the algorithm in C and derive the complexity.
+
+### Approach — Frame–Stewart Algorithm
+
+* For the classic 3-peg Hanoi, `H3(m) = 2^m − 1`. For 4 pegs, `R4(n) = min over 1 ≤ k < n of [2·R4(k) + H3(n−k)]`.
+* Dynamic programming computes `R4[1..n]` and the optimal split `k` at each `n`.
+* The move sequence is generated recursively: (1) move the top `k` disks off to a spare peg using all 4 pegs, (2) move the remaining `n−k` disks with ordinary 3-peg Hanoi (the peg holding the small disks is "busy"), (3) move the `k` disks from the spare peg onto the destination using all 4 pegs again.
+* Every generated move is validated against simulated peg stacks to ensure no larger disk is ever placed on a smaller one.
+
+### Concepts Covered
+
+* Frame–Stewart Algorithm
+* Dynamic Programming over an Optimal Split Point
+* Recursion (3-Peg and 4-Peg Hanoi)
+* Move Validation via Simulated Data Structures
+
+### Complexity
+
+* **DP table construction:** O(n²) time, O(n) space
+* **Generating/validating the move sequence:** O(R4(n)) moves — exponential in `n`, as is inherent to any Hanoi-type puzzle
+
+### Output
+
+* `reve_puzzle.c`
+* Sample run: DP table `R4(1..8) = 1, 3, 5, 9, 13, 17, 25, 33`; for `n = 8`, the simulated move sequence is validated and counts **exactly 33 moves**, matching the puzzle's required answer
+
+---
+
+## Experiment 4 – Security Switches
+
+### Objective
+
+`n` security switches, all initially ON, are governed by rules: the rightmost switch may be toggled freely; any other switch `i` may be toggled only if switch `i-1` (immediately to its right) is ON and all switches to the right of that are OFF; only one switch may be toggled per move. Devise an algorithm to turn all switches OFF in the minimum number of moves, implement it in C, and derive the complexity.
+
+### Approach — BFS over the State Graph
+
+* This puzzle is structurally identical to the classic **Chinese Rings / Baguenaudier** puzzle.
+* The state of all `n` switches is packed into a single `n`-bit integer `mask`; legal single-switch toggles (per the rules) define edges of a graph on `2^n` states.
+* A **Breadth-First Search** from the all-ON state to the all-OFF state finds the shortest path, which — since BFS on an unweighted graph always returns the shortest path — is a **provably optimal** answer, not just a formula lookup.
+
+### Concepts Covered
+
+* Breadth-First Search over an Implicit State Graph
+* Bitmask State Representation
+* Provable Optimality via Shortest-Path Search
+* Recognizing Puzzle Isomorphism (Chinese Rings)
+
+### Complexity
+
+* **Time:** O(n · 2^n) — `2^n` states, O(n) edges checked per state
+* **Space:** O(2^n) for the `dist[]`/`parent[]` arrays
+* **Closed-form check:** `M(n) = ⌊2^(n+1)/3⌋`, computable in O(1)
+
+### Output
+
+* `security_switches.c`
+* Sample run: BFS results for `n = 1..6 → 1, 2, 5, 10, 21, 42` moves, matching the closed-form check exactly; the optimal move sequence is also printed
+
+---
+
+## Experiment 5 – Hitting a Moving Target
+
+### Objective
+
+A shooter can fire at any of `n` hiding spots on a line; an unseen target moves to an adjacent spot between every two consecutive shots. Design an algorithm that guarantees hitting the target, or prove none exists. Implement the algorithm in C and derive the complexity.
+
+### Approach — Constructive Parity Argument
+
+* **Such an algorithm does exist** (for `n ≥ 2`): the target's position parity (odd/even) flips after every forced move; since neither its initial position nor its initial parity is known, two passes are needed to cover both cases — shoot spots `2, 3, ..., n-1` (increasing), then `n-1, n-2, ..., 2` (decreasing), for `2(n-2)` shots total.
+* Rather than merely asserting correctness, the program **constructively verifies it**: it tracks the set `S` of spots consistent with "the target has evaded every shot fired so far" (remove the shot spot, then expand to neighbours since the target is forced to move). If `S` empties out by the end of the fixed shooting sequence, a hit is guaranteed and the algorithm is proven correct for that `n`.
+
+### Concepts Covered
+
+* Existence Proofs for Search/Pursuit Algorithms
+* Parity Arguments
+* Constructive Verification via Possibility-Set Tracking
+
+### Complexity
+
+* **Time:** O(n²) — O(n) shots, O(n) work per shot to update the possibility set `S`
+* **Space:** O(n) for `S`
+
+### Output
+
+* `hitting_target.c`
+* Sample run: for `n = 6` and `n = 10`, the possibility set `S` is driven to exactly zero on the final shot of the sequence, confirming the algorithm both correct and tight
+
+---
+
+## Experiment 6 – The Best Time to Be Alive
+
+### Objective
+
+Given the birth and death years of a set of prominent (deceased) scientists (indexed alphabetically), find the year(s) in which the largest number of them were alive at once. If a scientist died the same year another was born, the death is considered to precede the birth that year. Devise an algorithm for this task, implement it in C, and derive the complexity.
+
+### Approach — Sweep-Line / Max Overlapping Intervals (revisited from Lab-04)
+
+* Convert every scientist's lifetime into two events: `(birthYear, +1)` and `(deathYear, -1)`.
+* Sort all `2n` events by year, breaking ties by processing `-1` (death) events **before** `+1` (birth) events in the same year — this directly encodes the problem's tie-break rule.
+* Sweep left to right, maintaining a running "alive" counter; after every `+1` event, compare against the best seen so far and record the year of any new maximum.
+
+### Concepts Covered
+
+* Sweep-Line Technique (recap from Lab-04)
+* Event-Based Simulation with a Tie-Breaking Rule
+* Max-Overlapping-Intervals Problem
+
+### Complexity
+
+* **Time:** O(n log n) — dominated by sorting the `2n` events
+* **Space:** O(n)
+
+### Output
+
+* `best_time_alive.c`
+* Sample run: on a built-in sample of 15 well-known scientists (Copernicus through Hawking), the peak is **5** scientists alive at once, starting in **1912** (Einstein, Curie, Bohr, Turing, Ramanujan)
+
+---
+
+## Experiment 7 – Matrix Chain Multiplication (MCM)
+
+### Objective
+
+Given a chain of matrices to be multiplied, implement the dynamic programming solution to the Matrix Chain Multiplication problem in C, finding the minimum number of scalar multiplications required and the corresponding optimal ordering (parenthesization) to compute the final product.
+
+### Approach
+
+* `dp[i][j]` = minimum scalar multiplications to compute the product `Ai..Aj`.
+* Recurrence: `dp[i][j] = min over i ≤ k < j of dp[i][k] + dp[k+1][j] + p[i-1]·p[k]·p[j]`, where matrix `Ai` has dimensions `p[i-1] × p[i]`.
+* A `split[i][j]` table records the optimal `k` at each `(i,j)`, used to reconstruct the optimal parenthesization by recursive backtracking.
+
+### Concepts Covered
+
+* Dynamic Programming
+* Optimal Substructure and Overlapping Subproblems
+* Reconstructing an Optimal Solution via a Split/Choice Table
+
+### Complexity
+
+* **Time:** O(n³) — O(n²) subproblems, each considering O(n) split points
+* **Space:** O(n²) for the `dp` and `split` tables
+
+### Output
+
+* `mcm.c`
+* Sample run: on the classic textbook instance (dimensions `30, 35, 15, 5, 10, 20, 25`), the minimum cost is **15125**, with optimal parenthesization `((A1(A2A3))((A4A5)A6))`
+
+---
+
 # Programming Language
 
 * C
@@ -1319,21 +1541,57 @@ DAA/
 │       ├── output.txt
 │       └── README.md
 │
-└── Lab-06/
-    ├── Q1_Array_Operations_Complexity/
-    │   ├── array_ops.c
+├── Lab-06/
+│   ├── Q1_Array_Operations_Complexity/
+│   │   ├── array_ops.c
+│   │   └── README.md
+│   │
+│   ├── Q2_Matrix_Operations_Complexity/
+│   │   ├── matrix_ops.c
+│   │   └── README.md
+│   │
+│   ├── Q3_Convolution_FFT/
+│   │   ├── convolution_fft.c
+│   │   └── README.md
+│   │
+│   └── Q4_Reversal_Sort/
+│       ├── reversal_sort.c
+│       └── README.md
+│
+└── Lab-07/
+    ├── Q1_Coin_Triangle/
+    │   ├── coin_triangle.c
+    │   ├── output.png
     │   └── README.md
     │
-    ├── Q2_Matrix_Operations_Complexity/
-    │   ├── matrix_ops.c
+    ├── Q2_Egg_Drop/
+    │   ├── egg_drop.c
+    │   ├── output.png
     │   └── README.md
     │
-    ├── Q3_Convolution_FFT/
-    │   ├── convolution_fft.c
+    ├── Q3_Reve_Puzzle/
+    │   ├── reve_puzzle.c
+    │   ├── output.png
     │   └── README.md
     │
-    └── Q4_Reversal_Sort/
-        ├── reversal_sort.c
+    ├── Q4_Security_Switches/
+    │   ├── security_switches.c
+    │   ├── output.png
+    │   └── README.md
+    │
+    ├── Q5_Hitting_Moving_Target/
+    │   ├── hitting_target.c
+    │   ├── output.png
+    │   └── README.md
+    │
+    ├── Q6_Best_Time_Alive/
+    │   ├── best_time_alive.c
+    │   ├── output.png
+    │   └── README.md
+    │
+    └── Q7_MCM/
+        ├── mcm.c
+        ├── output.png
         └── README.md
 ```
 
@@ -1384,6 +1642,13 @@ After completing these experiments, the following concepts were understood:
 * Convolution as Polynomial Multiplication
 * Fast Fourier Transform (FFT) and Inverse FFT
 * Reversal (Pancake-Flip) Sorting and Cost-Bounded Algorithm Design
+* Puzzle-Based Algorithm Design (Coin-Triangle Inversion, Frame–Stewart, Chinese Rings, Pursuit Games)
+* Combinatorial/Geometric Search and Closed-Form Formula Derivation
+* Generalized Dynamic Programming (Egg Drop)
+* The Frame–Stewart Algorithm for Multi-Peg Tower of Hanoi
+* Breadth-First Search over an Implicit State-Space Graph
+* Existence Proofs and Constructive Verification for Pursuit/Search Algorithms
+* Matrix Chain Multiplication (Optimal Parenthesization via DP)
 * Performance Analysis of Algorithms
 * Experimental Validation of Theoretical Complexities
 
@@ -1427,6 +1692,13 @@ After completing these experiments, the following concepts were understood:
 | Lab-06 | Q3         | Vector Convolution via FFT (D&C)              | O(n log n)                  |
 | Lab-06 | Q4         | Sorting via Reversals — existence bound       | O(n) reversals               |
 | Lab-06 | Q4         | Sorting via Reversals — cost-bounded (D&C)    | O(n log² n) total cost      |
+| Lab-07 | Q1         | Coin-Triangle Inversion (Geometric Search)    | O(n⁶) brute-force search, O(1) closed form |
+| Lab-07 | Q2         | Generalized Egg Drop (DP)                     | O(E·F)                      |
+| Lab-07 | Q3         | Reve's Puzzle (Frame–Stewart, 4-Peg Hanoi)    | O(n²) DP table, O(R4(n)) moves |
+| Lab-07 | Q4         | Security Switches (BFS / Chinese Rings)       | O(n·2ⁿ) BFS, O(1) closed form |
+| Lab-07 | Q5         | Hitting a Moving Target (Parity Strategy)     | O(n²)                        |
+| Lab-07 | Q6         | Best Time to Be Alive (Sweep-Line)            | O(n log n)                  |
+| Lab-07 | Q7         | Matrix Chain Multiplication (DP)              | O(n³)                        |
 
 ---
 
@@ -1478,7 +1750,7 @@ Merge Sort, pairwise merging, Strassen's matrix multiplication, special-pattern 
 
 Recursion occurs when a function calls itself to solve smaller versions of the same problem.
 
-Tower of Hanoi, Merge Sort, Strassen's algorithm, the defective-coin search, the k-sum combination enumeration in Lab-04, Quick Sort, Quickselect, Heap Sort's `heapify` routine in Lab-05, the FFT/IFFT recursion, and the divide-and-conquer reversal-sort merge step in Lab-06 are examples of recursive algorithms.
+Tower of Hanoi, Merge Sort, Strassen's algorithm, the defective-coin search, the k-sum combination enumeration in Lab-04, Quick Sort, Quickselect, Heap Sort's `heapify` routine in Lab-05, the FFT/IFFT recursion, the divide-and-conquer reversal-sort merge step in Lab-06, and the Frame–Stewart 4-peg Hanoi recursion in Lab-07 are examples of recursive algorithms.
 
 ---
 
@@ -1521,6 +1793,12 @@ T(n) = 2T(n/2) + O(n)
 
 Reversal Sort (cost-bounded, D&C merge):
 T(n) = 2T(n/2) + O(n log n)
+
+3-Peg Tower of Hanoi:
+H3(m) = 2·H3(m-1) + 1  =>  H3(m) = 2^m - 1
+
+4-Peg Tower of Hanoi (Frame–Stewart):
+R4(n) = min over 1<=k<n of [2·R4(k) + H3(n-k)]
 ```
 
 ---
@@ -1556,7 +1834,7 @@ Lab-04 focuses on how sorting (or already-sorted input) enables efficient soluti
 * **Stable Bucketing** — when the number of categories is small and fixed (e.g. 3 colours), a linear multi-pass bucket scan sorts by category in O(n), preserving order within each bucket if the scan itself never reorders same-category items.
 * **Sort + Binary Search** — sorting one set and binary-searching for the complement of each element in the other set turns an O(n²) pairing problem into O(n log n).
 * **Sort + Two-Pointer Scan** — once an array is sorted, finding two elements that sum to a target can be done in a single O(n) pass with two inward-moving pointers; this generalises to k-sum by fixing k−2 elements via brute force and two-pointering the rest.
-* **Sweep-Line / Event Processing** — converting interval start/end points into `+1`/`−1` events, sorting them by coordinate (O(n log n)), and sweeping through them in a single O(n) pass is a powerful technique for interval-overlap and interval-coverage problems, including careful tie-breaking when events share a coordinate.
+* **Sweep-Line / Event Processing** — converting interval start/end points into `+1`/`−1` events, sorting them by coordinate (O(n log n)), and sweeping through them in a single O(n) pass is a powerful technique for interval-overlap and interval-coverage problems, including careful tie-breaking when events share a coordinate. This technique reappears in Lab-07, Q6 to find the year with the most scientists alive at once.
 
 ---
 
@@ -1580,6 +1858,20 @@ Lab-06 shifts from implementing one named algorithm per experiment to systematic
 * **2D Matrix Complexity Audit** — most elementwise or structural checks (addition, zero/symmetry checks, transpose) are O(n²), while multiplication and determinant computation are inherently cubic (or better, via Strassen), and eigenvalue/eigenvector computation has no general closed-form solution for `n ≥ 5`, requiring iterative numerical methods instead.
 * **Convolution via FFT** — recognizing that vector convolution is equivalent to polynomial multiplication lets an O(mn) naive computation be replaced by an O(n log n) divide-and-conquer FFT/pointwise-multiply/inverse-FFT pipeline.
 * **Reversal (Pancake) Sorting** — sorting a permutation using only subsequence reversals can always be done in O(n) reversals; but once each reversal is charged a *cost* equal to its length, a naive approach becomes O(n²), motivating a divide-and-conquer merge strategy that achieves O(n log² n) total cost — an example of designing an algorithm around a non-uniform operation-cost model rather than a simple operation count.
+
+---
+
+## Puzzle-Based Algorithm Design, Dynamic Programming, and State-Space Search (Lab-07)
+
+Lab-07 shows how the same toolbox of algorithmic techniques from earlier labs — dynamic programming, recursion, exhaustive search, and the sweep-line — solves seemingly unrelated recreational puzzles once each puzzle is reduced to the right formal model:
+
+* **Geometric/Combinatorial Search with a Closed Form** — the coin-triangle inversion puzzle is modelled with integer lattice coordinates, solved by an exhaustive search over rigid-motion alignments, and the resulting minimum move count is shown to match a simple closed-form formula (`⌊T/3⌋`) — an example of validating a formula by independently deriving it from first principles.
+* **Generalized Dynamic Programming** — the classic "2 eggs, 100 floors" puzzle is generalized to arbitrary numbers of eggs and floors via a DP recurrence phrased in terms of "floors resolvable" rather than "trials needed," which turns out to be a cleaner formulation than the naive `O(E·F²)` DP.
+* **The Frame–Stewart Algorithm** — extending Tower of Hanoi from 3 to 4 pegs requires choosing an optimal split point `k` at each recursion level via its own DP, showing how recursion and dynamic programming can be combined within a single algorithm.
+* **Breadth-First Search over an Implicit State Graph** — the security-switches puzzle (isomorphic to the Chinese Rings / Baguenaudier puzzle) is solved by recognizing its `2^n` configurations as nodes of a graph and running BFS for a provably shortest solution, rather than relying on a memorized formula.
+* **Existence Proofs via Constructive Verification** — for the moving-target pursuit puzzle, a parity-based shooting strategy is not just stated but *proven* correct by tracking, and driving to empty, the set of positions consistent with a still-evading target.
+* **Sweep-Line Revisited** — the "best time to be alive" problem reuses the Lab-04 sweep-line technique with an added tie-breaking subtlety (deaths processed before births in the same year).
+* **Classic Matrix-Chain DP** — Matrix Chain Multiplication rounds out the lab as the canonical O(n³) interval DP problem, with optimal-substructure reconstruction via a `split[i][j]` choice table.
 
 ---
 
