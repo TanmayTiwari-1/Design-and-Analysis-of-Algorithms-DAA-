@@ -4,7 +4,7 @@
 
 ## Repository Overview
 
-This repository contains the C implementations and experimental analysis for **Lab-01, Lab-02, Lab-03, Lab-04, Lab-05, Lab-06, and Lab-07** of the **Design and Analysis of Algorithms (DAA)** course.
+This repository contains the C implementations and experimental analysis for **Lab-01, Lab-02, Lab-03, Lab-04, Lab-05, Lab-06, and Lab-07** of the **Design and Analysis of Algorithms (DAA)** course, along with the C++ generic-programming (templates) exercises of **Lab-08**.
 
 The objective of these laboratories is to understand the implementation, analysis, and comparison of different algorithms using practical experiments. Each experiment includes source code, generated datasets, observations, complexity analysis, and README documentation.
 
@@ -1382,20 +1382,374 @@ Given a chain of matrices to be multiplied, implement the dynamic programming so
 
 ---
 
+# Lab-08
+
+*Generic Programming in C++ — Template Functions and Template Classes*
+
+Lab-08 moves from C to **C++** and introduces **generic programming**: writing functions and classes once, in a general form, so that they work with many data types. In C++ this is achieved with **templates**. The lab contains two template functions (`swapValues`, `minimum`, plus the introductory `maximum`) and a set of class templates (`Sample`, `Maximum`, `Data`, `Square`, `Calculator`), each instantiated with several data types such as `int`, `float`, and `char`.
+
+## Theory – Generic Programming
+
+Generic programming is a technique in which algorithms and data structures are written in a general form so that they can work with different data types. It eliminates the need to write a separate algorithm for every data type.
+
+### Advantages
+
+* Code can be reused for different data types.
+* Reduces code duplication.
+* Makes programs easier to maintain.
+* Provides flexibility and type safety.
+* Useful for implementing general-purpose algorithms and data structures.
+* Avoids function overloading.
+
+### Basic Example
+
+```cpp
+template <class T>
+T add(T a, T b)
+{
+    return a + b;
+}
+```
+
+The same function can be used for `int`, `float`, `double`, etc.
+
+---
+
+## Theory – Template Function
+
+A template function is a general function that can work with different data types.
+
+### Syntax
+
+```cpp
+template <class T>
+return_type function_name(T arguments)
+{
+    // statements
+}
+```
+
+Here, `T` is a template parameter representing a data type.
+
+### Benefits of Template Functions
+
+* Code reusability.
+* Avoids writing separate functions for each data type.
+* Reduces program size.
+* Provides type safety.
+* Makes programs more flexible.
+
+---
+
+## Theory – Template Class
+
+A template class is a class that can operate with different data types. It is useful when the same class structure and operations are required for different types of data.
+
+### Syntax
+
+```cpp
+template <class T>
+class ClassName
+{
+    T data;
+public:
+    // member functions
+};
+```
+
+In this syntax, `class` does **not** mean `T` must be a class — it means "`T` is a type".
+
+Example of instantiation:
+
+* `Sample<int>` creates a class for integer data.
+* `Sample<float>` creates a class for floating-point data.
+
+### `template <class T>` vs `template <typename T>`
+
+Historically, C++ templates used `class`:
+
+```cpp
+template <class T>
+```
+
+Later, `typename` was introduced to make it clearer that `T` represents a type:
+
+```cpp
+template <typename T>
+```
+
+Today, `typename` is often preferred because it is more descriptive. Both forms are equivalent for declaring a template type parameter.
+
+---
+
+## Experiment 1 – Function Template to Find Maximum
+
+### Objective
+
+Write a generic function that returns the larger of two values, and use it with different data types.
+
+### Approach
+
+* Declare `template <typename T> T maximum(T a, T b)`.
+* Compare `a > b` and return the larger value.
+* The compiler generates a separate version of the function for each argument type used (`int`, `double`, ...), deducing `T` automatically from the call.
+
+### Concepts Covered
+
+* Generic Programming
+* Function Templates
+* Template Argument Deduction
+
+### Complexity
+
+* **Time:** O(1)
+* **Space:** O(1)
+
+### Output
+
+* `maximum.cpp`
+* Sample run: `maximum(10, 20) → 20`, `maximum(5.5, 2.5) → 5.5`
+
+---
+
+## Experiment 2 – Function Template to Find Minimum
+
+### Objective
+
+Write a generic function that returns the smaller of two values, and use it with different data types.
+
+### Approach
+
+* Declare `template <class T> T minimum(T a, T b)`.
+* Use the conditional operator `(a < b) ? a : b` to select the smaller value.
+* Call the same function with `int` and `float` arguments.
+
+### Concepts Covered
+
+* Generic Programming
+* Function Templates
+* Conditional (Ternary) Operator
+
+### Complexity
+
+* **Time:** O(1)
+* **Space:** O(1)
+
+### Output
+
+* `minimum.cpp`
+* Sample run: `Minimum of integers: 10`, `Minimum of floats: 3.2`
+
+---
+
+## Experiment 3 – Function Template to Swap Two Values
+
+### Objective
+
+Write a generic function that swaps two values of any data type.
+
+### Approach
+
+* Declare `template <class T> void swapValues(T &a, T &b)`.
+* Take both parameters **by reference** so the swap is visible to the caller.
+* Use a temporary variable `T temp` to exchange the values.
+
+### Concepts Covered
+
+* Generic Programming
+* Function Templates
+* Pass by Reference
+* Temporary Variable Swapping
+
+### Complexity
+
+* **Time:** O(1)
+* **Space:** O(1) — one temporary variable of type `T`
+
+### Output
+
+* `swap_values.cpp`
+* Sample run: `Before swapping: 10 20` → `After swapping: 20 10`
+
+---
+
+## Experiment 4 – Class Template to Store and Display Data
+
+### Objective
+
+Write a generic class that stores a value of any type and displays it.
+
+### Approach
+
+* Declare `template <class T> class Data` with a private member `T value`.
+* A constructor initialises `value`; a `display()` member function prints it.
+* Instantiate the class as `Data<int>`, `Data<float>`, and `Data<char>`.
+
+### Concepts Covered
+
+* Generic Programming
+* Class Templates
+* Constructors
+* Instantiation with Different Data Types
+
+### Complexity
+
+* **Time:** O(1) per operation
+* **Space:** O(1) per object
+
+### Output
+
+* `data_class.cpp`
+* Sample run: `Value = 100`, `Value = 25.5`, `Value = A`
+
+---
+
+## Experiment 5 – Class Template to Find Maximum
+
+### Objective
+
+Write a generic class that holds two values and finds the larger one.
+
+### Approach
+
+* Declare `template <class T> class Maximum` with two private members `T a, b`.
+* The constructor stores the two values; `findMax()` returns `(a > b) ? a : b`.
+* Instantiate as `Maximum<int>` and `Maximum<float>`.
+
+### Concepts Covered
+
+* Generic Programming
+* Class Templates
+* Member Functions Returning a Template Type
+
+### Complexity
+
+* **Time:** O(1)
+* **Space:** O(1) per object
+
+### Output
+
+* `maximum_class.cpp`
+* Sample run: `Maximum integer: 20`, `Maximum float: 5.5`
+
+---
+
+## Experiment 6 – Class Template to Find Square
+
+### Objective
+
+Write a generic class that computes the square of a number of any numeric type.
+
+### Approach
+
+* Declare `template <class T> class Square` with a private member `T number`.
+* `calculate()` returns `number * number`.
+* Instantiate as `Square<int>` and `Square<float>`.
+
+### Concepts Covered
+
+* Generic Programming
+* Class Templates
+* Arithmetic on Template Types
+
+### Complexity
+
+* **Time:** O(1)
+* **Space:** O(1) per object
+
+### Output
+
+* `square_class.cpp`
+* Sample run: `Square of integer: 25`, `Square of float: 6.25`
+
+---
+
+## Experiment 7 – Class Template for a Simple Calculator
+
+### Objective
+
+Write a generic calculator class that performs the four basic arithmetic operations on two values of any numeric type.
+
+### Approach
+
+* Declare `template <class T> class Calculator` with two private members `T a, b`.
+* `calculate()` prints addition, subtraction, multiplication, and division of `a` and `b`.
+* Instantiate as `Calculator<float>` with values `20.0` and `5.0`.
+
+### Concepts Covered
+
+* Generic Programming
+* Class Templates
+* Operator Usage on Template Types
+
+### Complexity
+
+* **Time:** O(1)
+* **Space:** O(1) per object
+
+### Notes
+
+* Division by zero is not handled; for an integer instantiation such as `Calculator<int>`, `/` performs integer division.
+* The type `T` must support `+`, `-`, `*`, and `/`, otherwise the program will not compile for that type.
+
+### Output
+
+* `calculator_class.cpp`
+* Sample run: `Addition = 25`, `Subtraction = 15`, `Multiplication = 100`, `Division = 4`
+
+---
+
+## Experiment 8 – Introductory Class Template (`Sample<T>`)
+
+### Objective
+
+Demonstrate the basic structure of a class template and how the compiler creates a different class for each type.
+
+### Approach
+
+* Declare `template <class T> class Sample` with a private member `T value`.
+* The constructor sets `value`; `display()` prints `Value = <value>`.
+* `Sample<int> obj1(10)` and `Sample<float> obj2(5.5)` create two distinct classes from the same template.
+
+### Concepts Covered
+
+* Class Templates
+* Template Instantiation
+* `class` vs `typename` in Template Declarations
+
+### Complexity
+
+* **Time:** O(1)
+* **Space:** O(1) per object
+
+### Output
+
+* `sample_class.cpp`
+* Sample run: `Value = 10`, `Value = 5.5`
+
+---
+
 # Programming Language
 
-* C
+* C (Lab-01 to Lab-07)
+* C++ (Lab-08)
 
 ---
 
 # Compiler
 
-The programs can be compiled using **GCC**.
+The C programs can be compiled using **GCC**, and the C++ programs (Lab-08) using **G++**.
 
-Example:
+Example (C):
 
 ```bash
 gcc filename.c -o output
+```
+
+Example (C++):
+
+```bash
+g++ filename.cpp -o output
 ```
 
 Run:
@@ -1558,40 +1912,73 @@ DAA/
 │       ├── reversal_sort.c
 │       └── README.md
 │
-└── Lab-07/
-    ├── Q1_Coin_Triangle/
-    │   ├── coin_triangle.c
-    │   ├── output.png
+├── Lab-07/
+│   ├── Q1_Coin_Triangle/
+│   │   ├── coin_triangle.c
+│   │   ├── output.png
+│   │   └── README.md
+│   │
+│   ├── Q2_Egg_Drop/
+│   │   ├── egg_drop.c
+│   │   ├── output.png
+│   │   └── README.md
+│   │
+│   ├── Q3_Reve_Puzzle/
+│   │   ├── reve_puzzle.c
+│   │   ├── output.png
+│   │   └── README.md
+│   │
+│   ├── Q4_Security_Switches/
+│   │   ├── security_switches.c
+│   │   ├── output.png
+│   │   └── README.md
+│   │
+│   ├── Q5_Hitting_Moving_Target/
+│   │   ├── hitting_target.c
+│   │   ├── output.png
+│   │   └── README.md
+│   │
+│   ├── Q6_Best_Time_Alive/
+│   │   ├── best_time_alive.c
+│   │   ├── output.png
+│   │   └── README.md
+│   │
+│   └── Q7_MCM/
+│       ├── mcm.c
+│       ├── output.png
+│       └── README.md
+│
+└── Lab-08/
+    ├── Q1_Template_Maximum/
+    │   ├── maximum.cpp
     │   └── README.md
     │
-    ├── Q2_Egg_Drop/
-    │   ├── egg_drop.c
-    │   ├── output.png
+    ├── Q2_Template_Minimum/
+    │   ├── minimum.cpp
     │   └── README.md
     │
-    ├── Q3_Reve_Puzzle/
-    │   ├── reve_puzzle.c
-    │   ├── output.png
+    ├── Q3_Template_Swap/
+    │   ├── swap_values.cpp
     │   └── README.md
     │
-    ├── Q4_Security_Switches/
-    │   ├── security_switches.c
-    │   ├── output.png
+    ├── Q4_Class_Template_Data/
+    │   ├── data_class.cpp
     │   └── README.md
     │
-    ├── Q5_Hitting_Moving_Target/
-    │   ├── hitting_target.c
-    │   ├── output.png
+    ├── Q5_Class_Template_Maximum/
+    │   ├── maximum_class.cpp
     │   └── README.md
     │
-    ├── Q6_Best_Time_Alive/
-    │   ├── best_time_alive.c
-    │   ├── output.png
+    ├── Q6_Class_Template_Square/
+    │   ├── square_class.cpp
     │   └── README.md
     │
-    └── Q7_MCM/
-        ├── mcm.c
-        ├── output.png
+    ├── Q7_Class_Template_Calculator/
+    │   ├── calculator_class.cpp
+    │   └── README.md
+    │
+    └── Q8_Class_Template_Sample/
+        ├── sample_class.cpp
         └── README.md
 ```
 
@@ -1649,6 +2036,11 @@ After completing these experiments, the following concepts were understood:
 * Breadth-First Search over an Implicit State-Space Graph
 * Existence Proofs and Constructive Verification for Pursuit/Search Algorithms
 * Matrix Chain Multiplication (Optimal Parenthesization via DP)
+* Generic Programming in C++
+* Function Templates (Maximum, Minimum, Swap)
+* Class Templates (Data Storage, Maximum, Square, Calculator)
+* Template Instantiation with `int`, `float`, and `char`
+* `template <class T>` vs `template <typename T>`
 * Performance Analysis of Algorithms
 * Experimental Validation of Theoretical Complexities
 
@@ -1699,6 +2091,14 @@ After completing these experiments, the following concepts were understood:
 | Lab-07 | Q5         | Hitting a Moving Target (Parity Strategy)     | O(n²)                        |
 | Lab-07 | Q6         | Best Time to Be Alive (Sweep-Line)            | O(n log n)                  |
 | Lab-07 | Q7         | Matrix Chain Multiplication (DP)              | O(n³)                        |
+| Lab-08 | Q1         | Function Template – Maximum                   | O(1)                        |
+| Lab-08 | Q2         | Function Template – Minimum                   | O(1)                        |
+| Lab-08 | Q3         | Function Template – Swap                      | O(1)                        |
+| Lab-08 | Q4         | Class Template – Data Storage/Display         | O(1)                        |
+| Lab-08 | Q5         | Class Template – Maximum                      | O(1)                        |
+| Lab-08 | Q6         | Class Template – Square                       | O(1)                        |
+| Lab-08 | Q7         | Class Template – Calculator                   | O(1)                        |
+| Lab-08 | Q8         | Class Template – Sample                       | O(1)                        |
 
 ---
 
@@ -1875,8 +2275,22 @@ Lab-07 shows how the same toolbox of algorithmic techniques from earlier labs �
 
 ---
 
+## Generic Programming and C++ Templates (Lab-08)
+
+Lab-08 changes language from C to C++ and focuses on **writing code once and reusing it for many data types**, rather than on a particular algorithm:
+
+* **Generic Programming** — algorithms and data structures are written in a general form, so one definition serves `int`, `float`, `double`, `char`, and so on, eliminating duplicated code and function overloading.
+* **Function Templates** — `template <class T>` (or `template <typename T>`) before a function lets the compiler deduce `T` from the call arguments and generate the right version automatically (`maximum`, `minimum`, `swapValues`).
+* **Class Templates** — a template parameter on a class lets the same class layout hold and process different types; the type is chosen explicitly at instantiation, e.g. `Data<int>`, `Data<float>`, `Data<char>`.
+* **`class` vs `typename`** — in `template <class T>`, the keyword `class` only means "`T` is a type"; `typename` was introduced for clarity and is generally preferred today. The two are interchangeable here.
+* **Type Safety and Requirements** — a template works for any type that supports the operators used inside it (`>`, `<`, `+`, `*`, ...); using an unsupported type is caught by the compiler at compile time rather than failing at run time.
+* **Cost** — every template operation in this lab is O(1) in time and space, so the focus is on abstraction and reusability rather than asymptotic performance.
+
+---
+
 # Software Requirements
 
-* GCC Compiler
+* GCC Compiler (C programs, Lab-01 to Lab-07)
+* G++ Compiler (C++ programs, Lab-08)
 * Visual Studio Code / Code::Blocks / Dev-C++
 * Windows / Linux / macOS
