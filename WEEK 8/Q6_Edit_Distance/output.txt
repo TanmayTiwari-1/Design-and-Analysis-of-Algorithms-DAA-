@@ -1,0 +1,14 @@
+Edit distance = 3
+
+Traceback (A -> B):
+  Step 1: Substitute 'k' -> 's'  (A[1])
+  Match       'i'
+  Match       't'
+  Match       't'
+  Step 2: Substitute 'e' -> 'i'  (A[5])
+  Match       'n'
+  Step 3: Insert     'g'        (after A[6])
+
+Alignment:
+  A: kitten-
+  B: sitting

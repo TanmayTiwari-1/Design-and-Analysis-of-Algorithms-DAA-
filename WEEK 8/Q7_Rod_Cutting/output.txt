@@ -1,0 +1,2 @@
+Maximum revenue = 22
+Pieces: 2 6 

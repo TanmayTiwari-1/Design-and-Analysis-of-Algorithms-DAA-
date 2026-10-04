@@ -1,0 +1,5 @@
+Interval [1, 10000]
+Longest trajectory : n = 6171 with 261 steps
+Highest peak       : n = 9663 reaches 27114424
+Average steps      : 84.97
+(saved collatz_interval.csv)

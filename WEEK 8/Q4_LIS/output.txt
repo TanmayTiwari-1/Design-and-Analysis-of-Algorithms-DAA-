@@ -1,0 +1,2 @@
+LIS length = 4
+One LIS: 2 5 7 101 

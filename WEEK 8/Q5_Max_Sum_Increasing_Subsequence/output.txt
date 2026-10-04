@@ -1,0 +1,2 @@
+Maximum sum = 106
+Subsequence (reversed): 100 3 2 1 

@@ -1,0 +1,2 @@
+Minimum coins = 3
+Coins used: 1 5 5 
