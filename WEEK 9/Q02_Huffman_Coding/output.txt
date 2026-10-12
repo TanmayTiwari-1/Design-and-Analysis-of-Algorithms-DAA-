@@ -1,0 +1,29 @@
+$ gcc -O2 -Wall -Wextra -o q02 q02_huffman.c -lm
+$ cat sample_input.txt
+6
+a 45
+b 13
+c 12
+d 16
+e 9
+f 5
+$ ./q02 < sample_input.txt
+Canonical Huffman codebook (sorted by length, then symbol)
+Symbol         Freq  Length  Code
+a                45       1  0
+b                13       3  100
+c                12       3  101
+d                16       3  110
+e                 9       4  1110
+f                 5       4  1111
+Total frequency                  = 100
+Sum f*len (total encoded bits)   = 224
+Expected code length             = 2.2400 bits/symbol
+Prefix-free check                = OK
+Optimum by exhaustive subset DP  = 224 (matches)
+$ ./q02 --test
+Random tests                       : 500 (n = 2..10, many tied frequencies)
+Checks per test                    : optimal cost == subset-DP optimum,
+                                     prefix-free, Kraft sum == 1, canonical order
+Failures                           : 0
+RESULT: ALL TESTS PASSED

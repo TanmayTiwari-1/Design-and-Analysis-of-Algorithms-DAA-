@@ -1,0 +1,30 @@
+$ gcc -O2 -Wall -Wextra -o q10 q10_greedy_superstring.c -lm
+$ cat sample_input.txt
+3
+cabab
+baba
+ababc
+$ ./q10 < sample_input.txt
+Input strings: 3, after removing duplicates/substrings: 3
+Greedy merging:
+  merge "cabab" + "ababc"  overlap 4  -> "cababc"
+  merge "cababc" + "baba"  overlap 0  -> "cababcbaba"
+Greedy superstring  : cababcbaba   (length 10, contains all: yes)
+Optimal superstring : cabababc   (length 8, contains all: yes)
+Approximation ratio |greedy|/|optimum| = 1.2500
+$ ./q10 --test
+Random tests                     : 2000 (2-7 strings over {a,b} or {a,b,c}, length 2-6)
+Validity failures                : 0 (outputs contain every input; greedy >= optimum)
+Instances where greedy > optimum : 111
+Worst ratio found                : 1.2500
+  instance: babba aabba abbabb (greedy 10, optimum 8)
+
+Classical family  c(ab)^k, (ba)^k, (ab)^k c   (optimum = 2k+4)
+   k   greedy  optimum    ratio
+   2       10        8   1.2500
+   3       14       10   1.4000
+   5       22       14   1.5714
+  10       42       24   1.7500
+  20       82       44   1.8636
+  50      202      104   1.9423
+RESULT: ALL TESTS PASSED

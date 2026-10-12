@@ -1,0 +1,24 @@
+$ gcc -O2 -Wall -Wextra -o q09 q09_hu_tucker.c -lm
+$ cat sample_input.txt
+8
+5 3 4 12 8 1 2 6
+$ ./q09 < sample_input.txt
+Optimal alphabetic tree (leaf order preserved)
+ Leaf   Weight   Depth  Code
+    1        5       3  000
+    2        3       4  0010
+    3        4       4  0011
+    4       12       2  01
+    5        8       2  10
+    6        1       4  1100
+    7        2       4  1101
+    8        6       3  111
+Cost  sum w_i*depth_i (Hu-Tucker) = 113
+Cost  by O(n^3) interval DP       = 113 (matches)
+Prefix-free = yes
+$ ./q09 --test
+Random tests : 3000 (n = 1..14, weights 1..9 [many ties] and 1..100)
+Checks       : Hu-Tucker cost == optimal alphabetic tree by O(n^3) interval DP,
+               phase-2 tree exists, leaf order preserved, codes prefix-free
+Failures     : 0
+RESULT: ALL TESTS PASSED

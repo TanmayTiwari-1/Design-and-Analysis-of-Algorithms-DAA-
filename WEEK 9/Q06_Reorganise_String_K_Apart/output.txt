@@ -1,0 +1,13 @@
+$ gcc -O2 -Wall -Wextra -o q06 q06_reorganise_string.c -lm
+$ cat sample_input.txt
+aabbcc 3
+$ ./q06 < sample_input.txt
+S = "aabbcc", K = 3
+Result : "abcabc"   (valid: yes)
+Exhaustive check: arrangement exists
+$ ./q06 --test
+Random tests : 3000 (|S| <= 8, alphabet <= 4, K = 1..5; 1428 of them solvable)
+Checks       : greedy succeeds iff some arrangement exists (all permutations tried),
+               and every output is a valid rearrangement
+Failures     : 0
+RESULT: ALL TESTS PASSED

@@ -1,0 +1,20 @@
+$ gcc -O2 -Wall -Wextra -o q03 q03_min_refuel.c -lm
+$ cat sample_input.txt
+100 10 5
+10 60
+20 30
+30 30
+60 40
+70 20
+$ ./q03 < sample_input.txt
+Target D = 100, initial fuel F = 10, stations = 5
+Minimum number of refuelling stops: 2
+  stop 1: station at distance 10 (+60 fuel)  -> reach becomes 70
+  stop 2: station at distance 60 (+40 fuel)  -> reach becomes 110
+Minimum initial fuel needed to reach D at all (any #stops): 10
+$ ./q03 --test
+Random tests : 1000 (up to 10 stations, brute force over all subsets)
+Checks       : min #stops == brute force; minimal initial fuel is feasible,
+               and one unit less is infeasible
+Failures     : 0
+RESULT: ALL TESTS PASSED

@@ -1,0 +1,17 @@
+$ gcc -O2 -Wall -Wextra -o q04 q04_connect_sticks.c -lm
+$ cat sample_input.txt
+6
+4 3 2 6 8 5
+$ ./q04 < sample_input.txt
+n = 6 sticks
+  merge  1: 2 + 3 -> 5   (running cost 5)
+  merge  2: 4 + 5 -> 9   (running cost 14)
+  merge  3: 5 + 6 -> 11   (running cost 25)
+  merge  4: 8 + 9 -> 17   (running cost 42)
+  merge  5: 11 + 17 -> 28   (running cost 70)
+Minimum total cost = 70
+Brute-force check  = 70 (matches)
+$ ./q04 --test
+Random tests : 1000 (n = 1..7, brute force tries every merge order)
+Failures     : 0
+RESULT: ALL TESTS PASSED
