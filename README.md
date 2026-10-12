@@ -4,7 +4,7 @@
 
 ## Repository Overview
 
-This repository contains the C implementations and experimental analysis for **Lab-01, Lab-02, Lab-03, Lab-04, Lab-05, Lab-06, and Lab-07** of the **Design and Analysis of Algorithms (DAA)** course, along with the C++ generic-programming (templates) exercises of **Lab-08**.
+This repository contains the C implementations and experimental analysis for **Lab-01, Lab-02, Lab-03, Lab-04, Lab-05, Lab-06, Lab-07, and Lab-09** of the **Design and Analysis of Algorithms (DAA)** course, along with the C++ generic-programming (templates) exercises of **Lab-08**. Lab-09 covers the **greedy design paradigm** (ten problems, each validated against an exhaustive or dynamic-programming oracle).
 
 The objective of these laboratories is to understand the implementation, analysis, and comparison of different algorithms using practical experiments. Each experiment includes source code, generated datasets, observations, complexity analysis, and README documentation.
 
@@ -1729,9 +1729,346 @@ Demonstrate the basic structure of a class template and how the compiler creates
 
 ---
 
+# Lab-09
+
+*BTech (CS-B and CE), 3rd Semester | October 6, 2026 | Instructor: Dr. Ajaya Kumar Dash*
+
+*Questions based on the greedy design paradigm (difficulty level: medium and hard)*
+
+Lab-09 is devoted to the **greedy design paradigm**: build a solution step by step, always taking the locally best choice, and prove with an exchange argument that this never hurts. The ten problems range from heap-driven classics (Huffman coding, connecting sticks, refuelling stops, minimising deviation) and scheduling problems (meeting rooms, K-distance string rearrangement, candy distribution) to harder ones: a fractional knapsack whose item values decay over time, the Hu–Tucker algorithm for optimal alphabetic trees, and the still-open Greedy Superstring Conjecture.
+
+Every program follows the same workflow: it reads a **carefully chosen input representation** from `stdin`, prints a step-by-step explanation for the sample input, and has a `--test` mode that runs a fixed-seed randomised self-check against an independent **brute-force or DP oracle**. Each question folder contains the C source, `sample_input.txt`, the captured terminal session (`output.txt`), a terminal screenshot (`terminal_output.png`), and a `README.md` with the problem, input representation, algorithm, correctness argument, and complexity derivation.
+
+How to run any question (from inside its folder):
+
+```bash
+gcc -O2 -Wall -Wextra -o q01 q01_fractional_knapsack.c -lm
+./q01 < sample_input.txt     # sample run
+./q01 --test                 # randomised self-check against a brute-force oracle
+```
+
+## Experiment 1 – Fractional Knapsack with Deterioration Rate
+
+### Objective
+
+`n` items have base values `v_i`, weights `w_i`, and decay rates `λ_i > 0`. An item consumed at time `t` has effective value density `(v_i / w_i) − λ_i · t`. With knapsack capacity `W`, find the consumption order and fractional amounts that maximise the total value, implement it in C, and derive the complexity.
+
+### Approach
+
+* **Model (stated explicitly, because the problem leaves it open):** items are consumed at 1 weight-unit per time-unit, so the clock equals the total weight consumed so far; taking `x` units of item `i` starting at time `T` yields `x·(d_i − λ_i·T) − λ_i·x²/2`, where `d_i = v_i / w_i`.
+* **Order lemma:** swapping two adjacent blocks changes the value by an amount that depends only on `λ_i − λ_j`, so items are consumed in **descending decay rate**, each as one contiguous block (rearrangement inequality / exchange argument).
+* **Amounts:** with the order fixed, the total value becomes a concave, separable function of the prefix sums of the amounts. It is solved exactly by a dynamic program over a piecewise-linear derivative (sliding-window maximum of a concave function), then back-tracked to recover every fraction.
+
+### Concepts Covered
+
+* Greedy Ordering via an Exchange Argument
+* Fractional Knapsack
+* Concave Optimisation / Piecewise-Linear DP
+* Time-Dependent (Decaying) Values
+
+### Complexity
+
+* **Time:** O(n log n) for sorting + O(n²) for the DP, so **O(n²)** overall
+* **Space:** O(n)
+
+### Output
+
+* `q01_fractional_knapsack.c`
+* Sample run (`n = 4`, `W = 10`): consumption order by decay rate is items 3, 1, 2, 4; the algorithm takes none of item 3, 60 % of item 1, all of items 2 and 4, for a **maximum total value of 63.3**
+* `--test`: 300 random instances compared against a brute force that tries every order with amounts on a 0.1 grid; 0 failures (the algorithm is never worse)
+
+---
+
+## Experiment 2 – Huffman Coding (Canonical Codebook)
+
+### Objective
+
+Given symbol frequencies, construct a prefix-free binary code of minimum expected length and output the **canonical Huffman codebook** (codes ordered by length, then lexicographically). Implement it in C and derive the complexity.
+
+### Approach
+
+* Store the tree in an array of nodes and the frontier in an **array-based min-heap** ordered by `(frequency, creation order)` so ties are deterministic.
+* Repeat `n−1` times: pop the two lightest nodes, create a parent with the summed weight, push it back. A leaf's code length is its depth.
+* **Canonical assignment:** sort symbols by `(length, symbol)`; the first code is all zeros, each next code is the previous code plus one (in binary), shifted left whenever the length grows. Only the code **lengths** are needed to decode.
+* **Correctness:** greedy-choice lemma (the two least frequent symbols can be siblings at maximum depth) plus optimal substructure (merging them reduces the problem by exactly `f_a + f_b`).
+
+### Concepts Covered
+
+* Huffman Coding
+* Prefix-Free Codes and Kraft Equality
+* Canonical Codes
+* Min-Heap Priority Queue
+
+### Complexity
+
+* **Time:** O(n log n) (`n−1` merges, each O(log n)); canonical sort O(n log n)
+* **Space:** O(n)
+
+### Output
+
+* `q02_huffman.c`
+* Sample run (frequencies 45, 13, 12, 16, 9, 5): codes `0`, `100`, `101`, `110`, `1110`, `1111`; **224 total bits (2.24 bits/symbol)**, prefix-free check OK, matches the exhaustive subset-DP optimum
+* `--test`: 500 random inputs with many ties, 0 failures
+
+---
+
+## Experiment 3 – Minimum Initial Fuel / Minimum Refuelling Stops (Reverse Greedy)
+
+### Objective
+
+A vehicle starts with fuel `F` and must reach distance `D`. Station `i` is at distance `d_i` and supplies `f_i` fuel. Find the **minimum number of refuelling stops** needed to reach `D`. Implement it in C and derive the complexity.
+
+### Approach
+
+* Stations are kept in an array sorted by distance; a **max-heap** stores the fuel amounts of the stations already passed.
+* Drive as far as possible. When the fuel runs out before `D`, *retroactively* stop at the passed station with the most fuel (hence "reverse" greedy). An empty heap means the target is unreachable.
+* **Bonus (the title mentions minimum initial fuel):** reachability is monotone in `F`, so a binary search over `F ∈ [0, D]`, using the greedy as the feasibility test, finds the smallest initial fuel.
+
+### Concepts Covered
+
+* Lazy / Reverse Greedy Decisions
+* Max-Heap Priority Queue
+* Exchange Argument
+* Binary Search on the Answer
+
+### Complexity
+
+* **Time:** O(m log m) for `m` stations (sorting + each station pushed and popped at most once); the bonus binary search adds a factor O(log D)
+* **Space:** O(m)
+
+### Output
+
+* `q03_min_refuel.c`
+* Sample run (`D = 100`, `F = 10`, 5 stations): **2 refuelling stops** (at distances 10 and 60), reach becomes 70 and then 110
+* `--test`: 1000 random instances against a brute force over all subsets of stations, 0 failures
+
+---
+
+## Experiment 4 – Minimum Cost to Connect Sticks
+
+### Objective
+
+Connecting two sticks of lengths `x` and `y` costs `x + y` and produces one stick of length `x + y`. Find the minimum total cost to connect all `n` sticks into one. Implement it in C and derive the complexity.
+
+### Approach
+
+* Keep the stick lengths in a `long long` **min-heap**.
+* Repeat `n−1` times: remove the two shortest sticks, add their sum to the cost, push the sum back.
+* **Why it works:** the merge process is a binary tree whose leaves are the sticks; a stick that takes part in `d` merges is paid for `d` times, so the cost equals `Σ L_i · depth_i`, exactly the weighted external path length that Huffman's algorithm minimises.
+
+### Concepts Covered
+
+* Greedy Merge Patterns (Huffman-Style)
+* Min-Heap Priority Queue
+* Weighted External Path Length
+
+### Complexity
+
+* **Time:** O(n log n); the merge phase is O(n) with a two-queue method if the lengths are sorted first
+* **Space:** O(n)
+
+### Output
+
+* `q04_connect_sticks.c`
+* Sample run (`4 3 2 6 8 5`): merges 2+3, 4+5, 5+6, 8+9, 11+17 give a **minimum total cost of 70**, matching the brute force
+* `--test`: 1000 random instances against an exhaustive search over every merge order, 0 failures
+
+---
+
+## Experiment 5 – Candy Distribution (Bi-Directional Slope Greedy)
+
+### Objective
+
+`n` children stand in a line with ratings. Each child must get at least one candy, and a child with a strictly higher rating than an immediate neighbour must get more candies than that neighbour. Find the minimum total number of candies. Implement it in C and derive the complexity.
+
+### Approach
+
+* **Method A – two passes:** left→right sets `c[i] = c[i−1] + 1` if `r[i] > r[i−1]` (else 1); right→left raises `c[i]` to `max(c[i], c[i+1] + 1)` when `r[i] > r[i+1]`.
+* **Method B – slope scan in O(1) extra space:** track the lengths of the current ascending run, descending run, and the height of the last peak, and add candies run by run.
+* Each `c[i]` ends up equal to the longest strictly increasing chain ending at `i` from either side, which every valid assignment must at least reach.
+
+### Concepts Covered
+
+* Bi-Directional Greedy Sweeps
+* Slope (Run-Length) Counting
+* Constant-Space Optimisation
+
+### Complexity
+
+* **Method A:** O(n) time, O(n) space
+* **Method B:** O(n) time, O(1) extra space
+
+### Output
+
+* `q05_candy.c`
+* Sample run (ratings `1 3 4 5 2 2 1 6 3`): candies `1 2 3 4 1 2 1 2 1`, **minimum total 17** by both methods, assignment valid
+* `--test`: 1500 random inputs with many ties, both methods compared with an exhaustive minimum, 0 failures
+
+---
+
+## Experiment 6 – Reorganise String with K-Distance Apart
+
+### Objective
+
+Given a string `S` and an integer `K`, rearrange `S` so that equal characters are at least `K` positions apart. If this is impossible, return an empty string. Implement it in C and derive the complexity.
+
+### Approach
+
+* State: `cnt[256]` (copies left) and `last[256]` (position of last use).
+* At every position, among the characters that have copies left **and** have cooled down (`i − last[c] ≥ K`), place the one with the **most copies left** (ties: used longest ago, then smallest code). If none is available, the answer is "impossible". For `K ≤ 1` the string is returned unchanged.
+* Choosing the most frequent character first keeps the tightest-scheduled character from being starved. Because a full proof needs a careful tie analysis, the program is validated exhaustively over all permutations.
+
+### Concepts Covered
+
+* Greedy Scheduling with Cool-Down
+* Frequency-Based Selection
+* Exhaustive Validation of a Greedy Rule
+
+### Complexity
+
+* **Time:** O(n·σ) with a scan over the alphabet (σ = 256), i.e. O(n) for a fixed alphabet; **O(n log σ)** with a max-heap plus a FIFO cool-down queue
+* **Space:** O(σ + n)
+
+### Output
+
+* `q06_reorganise_string.c`
+* Sample run (`aabbcc`, `K = 3`): result **`abcabc`**, valid
+* `--test`: 3000 random strings (1428 solvable) against all permutations: the greedy succeeds exactly when an arrangement exists, 0 failures
+
+---
+
+## Experiment 7 – Minimise Deviation in Array (Two-Way Greedy with Max-Heap)
+
+### Objective
+
+Given an array of positive integers, you may multiply any odd element by 2 or divide any even element by 2, any number of times. Minimise the deviation `max(A) − min(A)`. Implement it in C and derive the complexity.
+
+### Approach
+
+* **Make it one-directional:** double every odd element, so every element sits at its largest possible value and the only remaining move is "halve an even element".
+* Push everything in a **max-heap**, track the current minimum, and record the best deviation seen.
+* While the maximum is even: pop it, halve it, update the minimum and the best deviation, push it back. Stop when the maximum is odd, because it can no longer decrease.
+
+### Concepts Covered
+
+* Two-Way Operations Reduced to One Direction
+* Max-Heap Priority Queue
+* Tracking the Best State During a Monotone Process
+
+### Complexity
+
+* **Time:** each element can be halved at most log₂M times, so there are O(n log M) heap operations of O(log n): **O(n log n · log M)**
+* **Space:** O(n)
+
+### Output
+
+* `q07_min_deviation.c`
+* Sample run (`4 1 5 20`): the maximum is halved 20 → 10 → 5, giving a **minimum deviation of 3**, matching the exhaustive check
+* `--test`: 3000 random arrays against a brute force over every reachable value of every element, 0 failures
+
+---
+
+## Experiment 8 – Minimum Number of Meeting Rooms
+
+### Objective
+
+Given meeting intervals `[s_i, e_i)`, find the minimum number of conference rooms required. Implement it in C and derive the complexity.
+
+### Approach
+
+* **Method A – two-pointer sweep:** sort the start times and end times separately; if the next start comes before the next end a meeting begins (`rooms++`), otherwise one ends (`rooms−−`). The answer is the maximum reached.
+* **Method B – explicit schedule:** sort meetings by start time and keep a **min-heap** keyed by end time; reuse the room that frees up first if it is already free (`end ≤ s`), otherwise open a new room.
+* **Correctness:** rooms ≥ maximum overlap (simultaneous meetings need distinct rooms), and the greedy opens a new room only when all rooms are busy, so rooms ≤ maximum overlap.
+
+### Concepts Covered
+
+* Interval Partitioning
+* Sweep-Line Technique (revisited from Lab-04 and Lab-07)
+* Min-Heap Priority Queue
+
+### Complexity
+
+* **Time:** O(n log n) (sorting dominates; the sweep itself is O(n))
+* **Space:** O(n)
+
+### Output
+
+* `q08_meeting_rooms.c`
+* Sample run (7 meetings): **2 rooms** by the sweep, the heap schedule, and the direct maximum-overlap count; the printed room schedule is validated to have no overlaps
+* `--test`: 3000 random instances with touching end/start times, 0 failures
+
+---
+
+## Experiment 9 – Hu–Tucker Greedy Simulation (Optimal Alphabetic Tree)
+
+### Objective
+
+Given an ordered sequence of weights `w_1, …, w_n`, construct an optimal alphabetic binary tree (the in-order sequence of leaves must be preserved) that minimises `Σ w_i · depth(i)`. Implement it in C and derive the complexity.
+
+### Approach
+
+* **Phase 1 – combination:** original leaves are *square* nodes, merged nodes are *circle* nodes. Two nodes are *compatible* if no square node lies strictly between them. Repeatedly merge the compatible pair of smallest weight sum (ties: leftmost), placing the new circle node where the left node was, and add 1 to the depth of every leaf below it. This yields the optimal leaf depths, though not yet an alphabetic tree.
+* **Phase 2 – recombination:** scan the leaves left to right with a stack of `(node, depth)`; whenever the top two entries have equal depth, merge them into one entry of depth − 1. Hu–Tucker's theorem guarantees a single root remains, and codes follow by labelling edges `0/1`.
+* **Validation:** compare the cost with an exact `O(n³)` interval DP `C[i][j] = W(i..j) + min_k (C[i][k] + C[k+1][j])`.
+
+### Concepts Covered
+
+* Optimal Alphabetic Trees
+* Two-Phase Greedy Algorithms
+* Validation of a Greedy Algorithm Against Interval DP
+
+### Complexity
+
+* **Phase 1 (this simple simulation):** O(n³) worst case; **Phase 2:** O(n)
+* **Validation DP:** O(n³) time, O(n²) space
+* With priority queues / mergeable structures, Hu–Tucker (and Garsia–Wachs) run in **O(n log n)**; this lab version trades speed for clarity
+
+### Output
+
+* `q09_hu_tucker.c`
+* Sample run (`5 3 4 12 8 1 2 6`): leaf depths 3, 4, 4, 2, 2, 4, 4, 3 with codes `000`, `0010`, `0011`, `01`, `10`, `1100`, `1101`, `111`; **cost 113**, equal to the interval-DP optimum, prefix-free
+* `--test`: 3000 random inputs (weights 1..9 with many ties, and 1..100), 0 failures
+
+---
+
+## Experiment 10 – Greedy Superstring Conjecture (Open Problem)
+
+### Objective
+
+Given strings `S = {s_1, …, s_n}`, find the shortest string that contains every `s_i` as a substring (Shortest Common Superstring, NP-hard). The **Greedy Superstring Conjecture** says that repeatedly merging the pair with the maximum overlap yields a string at most twice the optimal length. Explore the problem and build an insight.
+
+### Approach
+
+* Remove duplicates and strings that are substrings of other strings; build the overlap matrix `ov[i][j]` (longest suffix of `s_i` that is a prefix of `s_j`).
+* **Greedy:** pick the pair with maximum overlap, merge, repeat until one string is left.
+* **Exact optimum (small `n`):** bitmask DP `dp[mask][last]`, with `dp[mask ∪ {j}][j] = dp[mask][i] + |s_j| − ov[i][j]`.
+* **Experiments (`--test`):** random small instances (where does greedy lose?) and the classical family `c(ab)^k, (ba)^k, (ab)^k c`, whose optimum is `2k+4` while greedy gives `4k+2`, so the ratio climbs towards 2.
+* **Status of the conjecture:** the lab sheet mentions a September 2026 arXiv preprint (*Disproving the Greedy Superstring Conjecture*, arXiv:2609.01365) claiming ratio at least `(9k+2)/(4k+4)` for even `k ≥ 10`, tending to 9/4. It is a preprint that has **not been independently validated**, and this program does **not** reproduce its construction; it is an exploration workbench for small sizes.
+
+### Concepts Covered
+
+* Greedy Approximation Algorithms
+* Shortest Common Superstring
+* Bitmask Dynamic Programming (Held–Karp style)
+* Open Problems and Conjectures
+
+### Complexity
+
+* **Overlap of two strings:** O(L²) with the naive scan
+* **Greedy:** O(n³ + n²N²) worst case for this simple implementation (linear-time implementations exist using suffix structures)
+* **Exact DP:** O(2ⁿ · n²) time, O(2ⁿ · n) space
+
+### Output
+
+* `q10_greedy_superstring.c`
+* Sample run (`cabab`, `baba`, `ababc`): greedy length 10 (`cababcbaba`) vs optimal 8 (`cabababc`), **ratio 1.25**
+* `--test`: 2000 random instances (worst ratio found only 1.25) and the classical family, whose ratio grows 1.25, 1.40, 1.57, 1.75, 1.86, 1.94 for `k = 2, 3, 5, 10, 20, 50`
+
+---
+
 # Programming Language
 
-* C (Lab-01 to Lab-07)
+* C (Lab-01 to Lab-07 and Lab-09)
 * C++ (Lab-08)
 
 ---
@@ -1750,6 +2087,14 @@ Example (C++):
 
 ```bash
 g++ filename.cpp -o output
+```
+
+The Lab-09 programs use the math library (`-lm`) and are compiled with warnings enabled:
+
+```bash
+gcc -O2 -Wall -Wextra -o q01 q01_fractional_knapsack.c -lm
+./q01 < sample_input.txt   # sample run
+./q01 --test               # randomised self-check
 ```
 
 Run:
@@ -1948,37 +2293,114 @@ DAA/
 │       ├── output.png
 │       └── README.md
 │
-└── Lab-08/
-    ├── Q1_Template_Maximum/
-    │   ├── maximum.cpp
+├── Lab-08/
+│   ├── Q1_Template_Maximum/
+│   │   ├── maximum.cpp
+│   │   └── README.md
+│   │
+│   ├── Q2_Template_Minimum/
+│   │   ├── minimum.cpp
+│   │   └── README.md
+│   │
+│   ├── Q3_Template_Swap/
+│   │   ├── swap_values.cpp
+│   │   └── README.md
+│   │
+│   ├── Q4_Class_Template_Data/
+│   │   ├── data_class.cpp
+│   │   └── README.md
+│   │
+│   ├── Q5_Class_Template_Maximum/
+│   │   ├── maximum_class.cpp
+│   │   └── README.md
+│   │
+│   ├── Q6_Class_Template_Square/
+│   │   ├── square_class.cpp
+│   │   └── README.md
+│   │
+│   ├── Q7_Class_Template_Calculator/
+│   │   ├── calculator_class.cpp
+│   │   └── README.md
+│   │
+│   └── Q8_Class_Template_Sample/
+│       ├── sample_class.cpp
+│       └── README.md
+│
+└── Lab-09/
+    ├── README.md
+    │
+    ├── tools/
+    │   ├── build_outputs.py
+    │   └── render_terminal.py
+    │
+    ├── Q01_Fractional_Knapsack_Deterioration/
+    │   ├── q01_fractional_knapsack.c
+    │   ├── sample_input.txt
+    │   ├── output.txt
+    │   ├── terminal_output.png
     │   └── README.md
     │
-    ├── Q2_Template_Minimum/
-    │   ├── minimum.cpp
+    ├── Q02_Huffman_Coding/
+    │   ├── q02_huffman.c
+    │   ├── sample_input.txt
+    │   ├── output.txt
+    │   ├── terminal_output.png
     │   └── README.md
     │
-    ├── Q3_Template_Swap/
-    │   ├── swap_values.cpp
+    ├── Q03_Minimum_Refuelling_Stops/
+    │   ├── q03_min_refuel.c
+    │   ├── sample_input.txt
+    │   ├── output.txt
+    │   ├── terminal_output.png
     │   └── README.md
     │
-    ├── Q4_Class_Template_Data/
-    │   ├── data_class.cpp
+    ├── Q04_Connect_Sticks/
+    │   ├── q04_connect_sticks.c
+    │   ├── sample_input.txt
+    │   ├── output.txt
+    │   ├── terminal_output.png
     │   └── README.md
     │
-    ├── Q5_Class_Template_Maximum/
-    │   ├── maximum_class.cpp
+    ├── Q05_Candy_Distribution/
+    │   ├── q05_candy.c
+    │   ├── sample_input.txt
+    │   ├── output.txt
+    │   ├── terminal_output.png
     │   └── README.md
     │
-    ├── Q6_Class_Template_Square/
-    │   ├── square_class.cpp
+    ├── Q06_Reorganise_String_K_Apart/
+    │   ├── q06_reorganise_string.c
+    │   ├── sample_input.txt
+    │   ├── output.txt
+    │   ├── terminal_output.png
     │   └── README.md
     │
-    ├── Q7_Class_Template_Calculator/
-    │   ├── calculator_class.cpp
+    ├── Q07_Minimise_Deviation/
+    │   ├── q07_min_deviation.c
+    │   ├── sample_input.txt
+    │   ├── output.txt
+    │   ├── terminal_output.png
     │   └── README.md
     │
-    └── Q8_Class_Template_Sample/
-        ├── sample_class.cpp
+    ├── Q08_Meeting_Rooms/
+    │   ├── q08_meeting_rooms.c
+    │   ├── sample_input.txt
+    │   ├── output.txt
+    │   ├── terminal_output.png
+    │   └── README.md
+    │
+    ├── Q09_Hu_Tucker/
+    │   ├── q09_hu_tucker.c
+    │   ├── sample_input.txt
+    │   ├── output.txt
+    │   ├── terminal_output.png
+    │   └── README.md
+    │
+    └── Q10_Greedy_Superstring/
+        ├── q10_greedy_superstring.c
+        ├── sample_input.txt
+        ├── output.txt
+        ├── terminal_output.png
         └── README.md
 ```
 
@@ -2041,6 +2463,19 @@ After completing these experiments, the following concepts were understood:
 * Class Templates (Data Storage, Maximum, Square, Calculator)
 * Template Instantiation with `int`, `float`, and `char`
 * `template <class T>` vs `template <typename T>`
+* The Greedy Design Paradigm (Greedy-Choice Property and Exchange Arguments)
+* Fractional Knapsack with Time-Decaying Values (Order Lemma + Concave Optimisation)
+* Huffman Coding and Canonical Prefix Codes
+* Heap-Based Greedy Algorithms (Min-Heap and Max-Heap Priority Queues)
+* Lazy / Reverse Greedy Decisions (Minimum Refuelling Stops)
+* Huffman-Style Merge Patterns (Minimum Cost to Connect Sticks)
+* Two-Pass and Slope-Counting Greedy Sweeps (Candy Distribution)
+* Greedy Scheduling with Cool-Down (K-Distance Apart String Rearrangement)
+* Two-Way Operations Reduced to One Direction (Minimise Deviation)
+* Interval Partitioning (Minimum Number of Meeting Rooms)
+* Optimal Alphabetic Trees via the Hu–Tucker Algorithm
+* Greedy Approximation and the Shortest Common Superstring (Open Conjecture)
+* Validating Greedy Algorithms Against Brute-Force and DP Oracles with Randomised Testing
 * Performance Analysis of Algorithms
 * Experimental Validation of Theoretical Complexities
 
@@ -2099,6 +2534,16 @@ After completing these experiments, the following concepts were understood:
 | Lab-08 | Q6         | Class Template – Square                       | O(1)                        |
 | Lab-08 | Q7         | Class Template – Calculator                   | O(1)                        |
 | Lab-08 | Q8         | Class Template – Sample                       | O(1)                        |
+| Lab-09 | Q1         | Fractional Knapsack with Deterioration (Greedy Order + Concave DP) | O(n²)                       |
+| Lab-09 | Q2         | Huffman Coding (Canonical Codebook)           | O(n log n)                  |
+| Lab-09 | Q3         | Minimum Refuelling Stops (Max-Heap Greedy)    | O(m log m)                  |
+| Lab-09 | Q4         | Minimum Cost to Connect Sticks (Min-Heap)     | O(n log n)                  |
+| Lab-09 | Q5         | Candy Distribution (Two-Pass / Slope Scan)    | O(n)                        |
+| Lab-09 | Q6         | Reorganise String K Apart (Cool-Down Greedy)  | O(n·σ), O(n log σ) with heap |
+| Lab-09 | Q7         | Minimise Deviation (Max-Heap)                 | O(n log n · log M)          |
+| Lab-09 | Q8         | Minimum Meeting Rooms (Sweep / Min-Heap)      | O(n log n)                  |
+| Lab-09 | Q9         | Hu–Tucker Optimal Alphabetic Tree (simulation) | O(n³) here, O(n log n) known |
+| Lab-09 | Q10        | Greedy Superstring (greedy vs exact DP)       | O(n³ + n²N²) greedy, O(2ⁿ·n²) exact |
 
 ---
 
@@ -2288,9 +2733,32 @@ Lab-08 changes language from C to C++ and focuses on **writing code once and reu
 
 ---
 
+## The Greedy Design Paradigm (Lab-09)
+
+Lab-09 applies one idea ten different ways: **make the locally best choice, never reconsider it, and prove it is safe.** A greedy algorithm is correct when the problem has two properties:
+
+* **Greedy-choice property** — some optimal solution contains the greedy first choice (usually shown with an *exchange argument*: take any optimal solution and swap in the greedy choice without making it worse).
+* **Optimal substructure** — after the greedy choice, what remains is a smaller instance of the same problem.
+
+Techniques that recur across the ten problems:
+
+* **Priority queues** — min-heaps (Huffman, connecting sticks, meeting rooms) and max-heaps (refuelling stops, minimising deviation) turn "always pick the best available item" into an O(log n) operation, so most greedy solutions cost O(n log n), dominated by sorting or heap work.
+* **Huffman-style merging** — Huffman coding (Q2) and connecting sticks (Q4) minimise the weighted external path length `Σ w_i · depth_i`; Hu–Tucker (Q9) solves the same objective when the leaf order must be preserved, needing two phases (combination, then recombination).
+* **Lazy / reverse decisions** — the refuelling problem (Q3) does not decide stops in advance; it drives as far as possible and *retroactively* stops at the best station already passed.
+* **Sweeps and interval partitioning** — meeting rooms (Q8) revisits the sweep-line technique of Lab-04 and Lab-07: the answer equals the maximum overlap.
+* **Ordering by an exchange argument** — the deteriorating knapsack (Q1) consumes items in descending decay rate, proved by showing that swapping two adjacent blocks changes the value by an amount that depends only on their decay rates.
+* **Directional sweeps and run counting** — candy distribution (Q5) uses a left-to-right and a right-to-left pass, or a single pass counting ascending/descending runs in O(1) space.
+* **Reducing a two-way operation to one direction** — minimising deviation (Q7) first doubles every odd number so that the only remaining move is "halve the maximum".
+* **Greedy with cool-down** — K-distance rearrangement (Q6) always places the most frequent character that has cooled down.
+* **Validating greedy algorithms** — a greedy rule that "looks right" can be wrong, so every Lab-09 program ships a fixed-seed randomised test against an independent oracle (exhaustive search, subset DP, interval DP, or bitmask DP).
+* **Greedy as approximation** — for NP-hard problems such as the shortest common superstring (Q10), greedy gives a fast approximation, and the open question is *how* bad it can be (conjectured ratio 2; a recent unvalidated preprint claims 9/4).
+
+---
+
 # Software Requirements
 
-* GCC Compiler (C programs, Lab-01 to Lab-07)
+* GCC Compiler (C programs, Lab-01 to Lab-07 and Lab-09)
 * G++ Compiler (C++ programs, Lab-08)
 * Visual Studio Code / Code::Blocks / Dev-C++
+* Python 3 with Pillow (optional, only to regenerate the Lab-09 terminal screenshots with `tools/build_outputs.py`)
 * Windows / Linux / macOS
