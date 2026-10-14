@@ -1,0 +1,6 @@
+After op 1 (0,0): islands = 1
+After op 2 (0,1): islands = 1
+After op 3 (1,2): islands = 2
+After op 4 (2,1): islands = 3
+After op 5 (1,1): islands = 1
+After op 6 (0,1): islands = 1
