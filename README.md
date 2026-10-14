@@ -4,7 +4,7 @@
 
 ## Repository Overview
 
-This repository contains the C implementations and experimental analysis for **Lab-01, Lab-02, Lab-03, Lab-04, Lab-05, Lab-06, Lab-07, and Lab-09** of the **Design and Analysis of Algorithms (DAA)** course, along with the C++ generic-programming (templates) exercises of **Lab-08**. Lab-09 covers the **greedy design paradigm** (ten problems, each validated against an exhaustive or dynamic-programming oracle).
+This repository contains the C implementations and experimental analysis for **Lab-01, Lab-02, Lab-03, Lab-04, Lab-05, Lab-06, Lab-07, Lab-09, and Lab-10** of the **Design and Analysis of Algorithms (DAA)** course, along with the C++ generic-programming (templates) exercises of **Lab-08**. Lab-09 covers the **greedy design paradigm** (ten problems, each validated against an exhaustive or dynamic-programming oracle). Lab-10 covers **graphs and the Disjoint Set Union (Union-Find) data structure** (five problems, each validated against a brute-force oracle, with terminal screenshots and runtime graphs).
 
 The objective of these laboratories is to understand the implementation, analysis, and comparison of different algorithms using practical experiments. Each experiment includes source code, generated datasets, observations, complexity analysis, and README documentation.
 
@@ -2066,9 +2066,186 @@ Given strings `S = {s_1, …, s_n}`, find the shortest string that contains ever
 
 ---
 
+# Lab-10
+
+*BTech (CS-B and CE), 3rd Semester | October 13, 2026 | Instructor: Dr. Ajaya Kumar Dash*
+
+*Questions based on graphs and their representations, the Disjoint Set Union (Union-Find) data structure, and connected components of a graph (difficulty level: medium and hard)*
+
+Lab-10 is devoted to the **Disjoint Set Union (DSU)** data structure and how it answers *connectivity* questions on a graph that changes over time. A DSU supports `find` and `union` in amortised O(α(n)) (inverse Ackermann, effectively constant) when **union by size** and **path compression** are used. The five problems use it in five different ways: with a parity bit (bipartiteness), on a flattened grid (islands), with per-component aggregates (size and weight), in **reverse time** (vertex deletions), and as a component finder followed by sorting (smallest permutation).
+
+Each program reads a **carefully chosen input representation** from `stdin` and prints one answer line per event. For these online/offline connectivity problems no adjacency list is needed except in Q4, where a vertex's neighbours must be visited when it is re-added. Every program was checked against an independent **brute-force Python oracle** on 500 random small inputs (`tools/test_bruteforce.py`, 0 mismatches), and each question folder contains the C source, `input.txt`, the captured terminal session (`output.txt`), a terminal screenshot (`terminal_output.png`), a runtime-versus-input-size graph (`runtime_graph.png`), and a `README.md` with the input representation, algorithm and complexity.
+
+How to run any question (from inside its folder):
+
+```bash
+gcc -O2 -o q1 q1_bipartite.c
+./q1 < input.txt
+```
+
+Vertices are 1-indexed in Q1, Q3, Q4 and Q5; grid cells are 0-indexed in Q2.
+
+## Experiment 1 – Online Graph-Bipartiteness Testing
+
+### Objective
+
+Given an undirected graph with `V` vertices, edges arrive online one by one. Keep the graph bipartite: if adding edge `(u, v)` does not create an odd cycle, add it; otherwise report that it violates bipartiteness and skip it. Implement it in C and derive the complexity.
+
+### Approach
+
+* **Input representation:** edges are processed as they arrive, so no graph is stored; only the DSU arrays `parent`, `parity` and `size` are kept.
+* `parity[x]` is the colour difference between `x` and its parent, maintained through path compression.
+* For edge `(u, v)`: if `find(u) == find(v)`, the edge is legal only when the two parities differ (equal parity closes an odd cycle, so it is rejected; self-loops are rejected too).
+* Otherwise merge the two sets by size and set the attached root's parity to `d[u] ^ d[v] ^ 1`, which forces `u` and `v` to receive different colours.
+
+### Concepts Covered
+
+* Bipartite Graphs and Odd Cycles
+* DSU with Parity (Weighted Union-Find)
+* Online Algorithms
+
+### Complexity
+
+* **Time:** O((V + E) · α(V))
+* **Space:** O(V)
+
+### Output
+
+* `q1_bipartite.c`
+* Sample run (`V = 6`, 8 edges): edges `(3,1)` and `(6,4)` close triangles and are **REJECTED**; the other 6 are **ADDED**
+* Brute-force check: 500 random inputs against a BFS 2-colouring test, 0 mismatches
+
+---
+
+## Experiment 2 – Dynamic Connected Components in a Grid (Number of Islands II)
+
+### Objective
+
+An `R × C` grid starts completely filled with water. Land cells are added one by one at `(r_1, c_1), …, (r_k, c_k)`. After each operation output the number of 4-directionally connected land components (islands). Implement it in C and derive the complexity.
+
+### Approach
+
+* **Input representation:** the grid is flattened, `id = r · C + c`, with a DSU over the ids and a `land[]` flag array; no explicit graph is built.
+* Adding a new land cell does `count++`; each successful union with one of its four land neighbours does `count--`.
+* Adding a cell that is already land changes nothing.
+
+### Concepts Covered
+
+* Dynamic Connectivity (Incremental)
+* Coordinate Flattening
+* Union-Find with Path Halving
+
+### Complexity
+
+* **Time:** O(R · C + K · α(R · C)) (at most four neighbours per operation)
+* **Space:** O(R · C)
+
+### Output
+
+* `q2_islands.c`
+* Sample run (`3 × 3` grid, 6 operations): islands after each step are `1, 1, 2, 3, 1, 1` (the fifth cell joins everything, the last operation repeats a land cell)
+* Brute-force check: 500 random inputs against a flood-fill count, 0 mismatches
+
+---
+
+## Experiment 3 – Maximum Weight Component with Size Constraints
+
+### Objective
+
+Each vertex `v` has a weight `w_v`; weighted edges are added sequentially. After every edge, report the maximum total vertex weight of any connected component whose size does not exceed a threshold `K`. Implement it in C and derive the complexity.
+
+### Approach
+
+* **Input representation:** edges arrive sequentially, so only DSU arrays are stored, with `size[root]` and `sum[root]` (total vertex weight) kept at each root.
+* A union merges both the size and the sum into the new root.
+* After each edge, scan the roots and take the largest `sum` among roots with `size <= K` (0 if none). The scan is needed because a component that grows past `K` stops counting, so the answer can go down.
+* Vertex weights are assumed non-negative; the edge weights are read but not needed for the answer.
+
+### Concepts Covered
+
+* DSU with Component Aggregates (Size and Sum)
+* Constrained Maximisation over Components
+
+### Complexity
+
+* **Time:** O(E · V) with the simple root scan (plus O(E · α(V)) for the unions); a max-heap or multiset of valid component sums would reduce it to O(E log V)
+* **Space:** O(V)
+
+### Output
+
+* `q3_maxweight_size.c`
+* Sample run (`V = 6`, `K = 3`, 5 edges): maximum valid weight after each edge is `8, 10, 7, 11, 0` (it falls to 7 when `{1,2,3,4}` exceeds `K`, and to 0 when everything is one component of size 6)
+* Brute-force check: 500 random inputs against a recomputation of components after every edge, 0 mismatches
+* The runtime graph shows the expected quadratic growth
+
+---
+
+## Experiment 4 – Reverse Time-Step DSU Application
+
+### Objective
+
+A vertex-weighted undirected graph loses its vertices one by one in the order `P = [p_1, p_2, …, p_V]` (deleting a vertex removes it and all its incident edges). After each deletion compute the maximum sum of vertex values among all remaining connected components. Implement it in C and derive the complexity.
+
+### Approach
+
+* **Input representation:** an adjacency list stored in arrays (`head / nxt / to`, `2E` entries), because the neighbours of a vertex must be visited when it is added back.
+* A DSU can merge but cannot split, so time is run **backwards**: start with no vertices, then add `p_V, p_{V-1}, …, p_2`, uniting each with its already-active neighbours.
+* After re-adding `p_{i+1}`, the best component sum so far is the answer for "after deleting `p_1 … p_i`"; the answer after deleting everything is 0.
+* Vertex weights are assumed non-negative, so merging never lowers the running maximum.
+
+### Concepts Covered
+
+* Offline Processing in Reverse
+* Turning Deletions into Insertions
+* DSU with Component Sums
+
+### Complexity
+
+* **Time:** O((V + E) · α(V))
+* **Space:** O(V + E)
+
+### Output
+
+* `q4_reverse_dsu.c`
+* Sample run (5 vertices, weights `4 3 5 2 6`, path graph, order `3 1 4 2 5`): maximum component sum after each deletion is `8, 8, 6, 6, 0`
+* Brute-force check: 500 random inputs against a recomputation of components after every deletion, 0 mismatches
+
+---
+
+## Experiment 5 – Lexicographically Smallest Connected Component Permutation
+
+### Objective
+
+Given a permutation `A` of `1 … n` and a list of allowed swaps `(u, v)` forming an undirected graph on the positions, find the lexicographically smallest permutation reachable through any number of valid swaps. Implement it in C and derive the complexity.
+
+### Approach
+
+* **Input representation:** the swaps are edges consumed directly by the DSU, so no graph is stored.
+* Positions joined by swaps form a connected component, and inside one component the values can be rearranged in any order.
+* Sort pairs `(root, position)` and pairs `(root, value)`; both sorted lists group identically, so the `k`-th position receives the `k`-th value, putting the smallest values on the earliest positions of each component.
+
+### Concepts Covered
+
+* Connected Components via DSU
+* Grouping by Root and Sorting
+* Lexicographic Minimisation
+
+### Complexity
+
+* **Time:** O(n log n + m · α(n)), dominated by the sort
+* **Space:** O(n)
+
+### Output
+
+* `q5_smallest_perm.c`
+* Sample run (`A = 6 5 4 3 2 1`, swaps `(1,2) (2,3) (4,6)`): result `4 5 6 1 2 3`
+* Brute-force check: 500 random inputs against a per-component sort, 0 mismatches
+
+---
+
 # Programming Language
 
-* C (Lab-01 to Lab-07 and Lab-09)
+* C (Lab-01 to Lab-07, Lab-09 and Lab-10)
 * C++ (Lab-08)
 
 ---
@@ -2076,6 +2253,13 @@ Given strings `S = {s_1, …, s_n}`, find the shortest string that contains ever
 # Compiler
 
 The C programs can be compiled using **GCC**, and the C++ programs (Lab-08) using **G++**.
+
+The Lab-10 programs need no extra libraries:
+
+```bash
+gcc -O2 -o q1 q1_bipartite.c
+./q1 < input.txt
+```
 
 Example (C):
 
@@ -2326,81 +2510,128 @@ DAA/
 │       ├── sample_class.cpp
 │       └── README.md
 │
-└── Lab-09/
+├── Lab-09/
+│   ├── README.md
+│   │
+│   ├── tools/
+│   │   ├── build_outputs.py
+│   │   └── render_terminal.py
+│   │
+│   ├── Q01_Fractional_Knapsack_Deterioration/
+│   │   ├── q01_fractional_knapsack.c
+│   │   ├── sample_input.txt
+│   │   ├── output.txt
+│   │   ├── terminal_output.png
+│   │   └── README.md
+│   │
+│   ├── Q02_Huffman_Coding/
+│   │   ├── q02_huffman.c
+│   │   ├── sample_input.txt
+│   │   ├── output.txt
+│   │   ├── terminal_output.png
+│   │   └── README.md
+│   │
+│   ├── Q03_Minimum_Refuelling_Stops/
+│   │   ├── q03_min_refuel.c
+│   │   ├── sample_input.txt
+│   │   ├── output.txt
+│   │   ├── terminal_output.png
+│   │   └── README.md
+│   │
+│   ├── Q04_Connect_Sticks/
+│   │   ├── q04_connect_sticks.c
+│   │   ├── sample_input.txt
+│   │   ├── output.txt
+│   │   ├── terminal_output.png
+│   │   └── README.md
+│   │
+│   ├── Q05_Candy_Distribution/
+│   │   ├── q05_candy.c
+│   │   ├── sample_input.txt
+│   │   ├── output.txt
+│   │   ├── terminal_output.png
+│   │   └── README.md
+│   │
+│   ├── Q06_Reorganise_String_K_Apart/
+│   │   ├── q06_reorganise_string.c
+│   │   ├── sample_input.txt
+│   │   ├── output.txt
+│   │   ├── terminal_output.png
+│   │   └── README.md
+│   │
+│   ├── Q07_Minimise_Deviation/
+│   │   ├── q07_min_deviation.c
+│   │   ├── sample_input.txt
+│   │   ├── output.txt
+│   │   ├── terminal_output.png
+│   │   └── README.md
+│   │
+│   ├── Q08_Meeting_Rooms/
+│   │   ├── q08_meeting_rooms.c
+│   │   ├── sample_input.txt
+│   │   ├── output.txt
+│   │   ├── terminal_output.png
+│   │   └── README.md
+│   │
+│   ├── Q09_Hu_Tucker/
+│   │   ├── q09_hu_tucker.c
+│   │   ├── sample_input.txt
+│   │   ├── output.txt
+│   │   ├── terminal_output.png
+│   │   └── README.md
+│   │
+│   └── Q10_Greedy_Superstring/
+│       ├── q10_greedy_superstring.c
+│       ├── sample_input.txt
+│       ├── output.txt
+│       ├── terminal_output.png
+│       └── README.md
+│
+└── Lab-10/
     ├── README.md
     │
     ├── tools/
-    │   ├── build_outputs.py
-    │   └── render_terminal.py
+    │   ├── build_assets.py
+    │   └── test_bruteforce.py
     │
-    ├── Q01_Fractional_Knapsack_Deterioration/
-    │   ├── q01_fractional_knapsack.c
-    │   ├── sample_input.txt
+    ├── Q1_Online_Bipartiteness/
+    │   ├── q1_bipartite.c
+    │   ├── input.txt
     │   ├── output.txt
     │   ├── terminal_output.png
+    │   ├── runtime_graph.png
     │   └── README.md
     │
-    ├── Q02_Huffman_Coding/
-    │   ├── q02_huffman.c
-    │   ├── sample_input.txt
+    ├── Q2_Dynamic_Components_Grid/
+    │   ├── q2_islands.c
+    │   ├── input.txt
     │   ├── output.txt
     │   ├── terminal_output.png
+    │   ├── runtime_graph.png
     │   └── README.md
     │
-    ├── Q03_Minimum_Refuelling_Stops/
-    │   ├── q03_min_refuel.c
-    │   ├── sample_input.txt
+    ├── Q3_Max_Weight_Component_Size_K/
+    │   ├── q3_maxweight_size.c
+    │   ├── input.txt
     │   ├── output.txt
     │   ├── terminal_output.png
+    │   ├── runtime_graph.png
     │   └── README.md
     │
-    ├── Q04_Connect_Sticks/
-    │   ├── q04_connect_sticks.c
-    │   ├── sample_input.txt
+    ├── Q4_Reverse_DSU_Deletions/
+    │   ├── q4_reverse_dsu.c
+    │   ├── input.txt
     │   ├── output.txt
     │   ├── terminal_output.png
+    │   ├── runtime_graph.png
     │   └── README.md
     │
-    ├── Q05_Candy_Distribution/
-    │   ├── q05_candy.c
-    │   ├── sample_input.txt
-    │   ├── output.txt
-    │   ├── terminal_output.png
-    │   └── README.md
-    │
-    ├── Q06_Reorganise_String_K_Apart/
-    │   ├── q06_reorganise_string.c
-    │   ├── sample_input.txt
-    │   ├── output.txt
-    │   ├── terminal_output.png
-    │   └── README.md
-    │
-    ├── Q07_Minimise_Deviation/
-    │   ├── q07_min_deviation.c
-    │   ├── sample_input.txt
-    │   ├── output.txt
-    │   ├── terminal_output.png
-    │   └── README.md
-    │
-    ├── Q08_Meeting_Rooms/
-    │   ├── q08_meeting_rooms.c
-    │   ├── sample_input.txt
-    │   ├── output.txt
-    │   ├── terminal_output.png
-    │   └── README.md
-    │
-    ├── Q09_Hu_Tucker/
-    │   ├── q09_hu_tucker.c
-    │   ├── sample_input.txt
-    │   ├── output.txt
-    │   ├── terminal_output.png
-    │   └── README.md
-    │
-    └── Q10_Greedy_Superstring/
-        ├── q10_greedy_superstring.c
-        ├── sample_input.txt
+    └── Q5_Smallest_Permutation_Swaps/
+        ├── q5_smallest_perm.c
+        ├── input.txt
         ├── output.txt
         ├── terminal_output.png
+        ├── runtime_graph.png
         └── README.md
 ```
 
@@ -2476,6 +2707,12 @@ After completing these experiments, the following concepts were understood:
 * Optimal Alphabetic Trees via the Hu–Tucker Algorithm
 * Greedy Approximation and the Shortest Common Superstring (Open Conjecture)
 * Validating Greedy Algorithms Against Brute-Force and DP Oracles with Randomised Testing
+* Disjoint Set Union (Union-Find) with Union by Size and Path Compression
+* DSU with Parity for Online Bipartiteness Testing
+* Dynamic Connectivity on a Grid via Coordinate Flattening (Number of Islands II)
+* DSU with Component Aggregates (Size and Total Weight)
+* Offline Reverse-Time Processing (Turning Deletions into Insertions)
+* Smallest Permutation under Allowed Swaps via Connected Components
 * Performance Analysis of Algorithms
 * Experimental Validation of Theoretical Complexities
 
@@ -2544,6 +2781,11 @@ After completing these experiments, the following concepts were understood:
 | Lab-09 | Q8         | Minimum Meeting Rooms (Sweep / Min-Heap)      | O(n log n)                  |
 | Lab-09 | Q9         | Hu–Tucker Optimal Alphabetic Tree (simulation) | O(n³) here, O(n log n) known |
 | Lab-09 | Q10        | Greedy Superstring (greedy vs exact DP)       | O(n³ + n²N²) greedy, O(2ⁿ·n²) exact |
+| Lab-10 | Q1         | Online Bipartiteness (DSU with Parity)        | O((V+E)·α(V))               |
+| Lab-10 | Q2         | Dynamic Islands in a Grid (DSU, Flattened Grid) | O(R·C + K·α)              |
+| Lab-10 | Q3         | Max Weight Component with Size ≤ K (DSU + Root Scan) | O(E·V), O(E log V) with a heap |
+| Lab-10 | Q4         | Reverse Time-Step DSU (Vertex Deletions)      | O((V+E)·α(V))               |
+| Lab-10 | Q5         | Lexicographically Smallest Permutation (DSU + Sort) | O(n log n + m·α(n))   |
 
 ---
 
@@ -2755,10 +2997,29 @@ Techniques that recur across the ten problems:
 
 ---
 
+## Disjoint Set Union and Graph Connectivity (Lab-10)
+
+Lab-10 answers *"are these two things connected, and how many groups are there?"* while the graph changes. A **Disjoint Set Union** keeps a partition of the vertices into sets and supports two operations:
+
+* `find(x)` — returns the representative (root) of the set containing `x`.
+* `union(a, b)` — merges the two sets containing `a` and `b`.
+
+With **union by size** (attach the smaller tree under the larger) and **path compression** (point nodes straight at the root while searching), both operations cost amortised O(α(n)), where α is the inverse Ackermann function and is at most 4 for any practical input. Techniques that recur across the five problems:
+
+* **Extra information on the edges** — storing a parity bit (colour difference to the parent) turns the DSU into a bipartiteness detector (Q1): an edge inside a set with equal parity closes an odd cycle.
+* **Flattening a grid** — mapping cell `(r, c)` to `r · C + c` lets a DSU run on a grid, with the island count adjusted by +1 per new cell and −1 per successful merge (Q2).
+* **Aggregates at the root** — keeping `size` and `sum` per root answers "largest valid component" queries without traversing the graph (Q3); a size limit means the answer can fall as components merge.
+* **Offline reverse processing** — a DSU cannot split a set, so deletions are answered by replaying time backwards and inserting vertices instead (Q4).
+* **Components, then local sorting** — once the components are known, anything permitted inside a component can be solved per component; sorting the positions and values of each component gives the lexicographically smallest permutation (Q5).
+* **Validation** — each program was checked on 500 random inputs against a brute-force oracle (BFS, flood fill, recomputation of components), and runtime-versus-N graphs confirm near-linear growth (Q1, Q2, Q4), N log N (Q5) and quadratic (Q3).
+
+---
+
 # Software Requirements
 
-* GCC Compiler (C programs, Lab-01 to Lab-07 and Lab-09)
+* GCC Compiler (C programs, Lab-01 to Lab-07, Lab-09 and Lab-10)
 * G++ Compiler (C++ programs, Lab-08)
 * Visual Studio Code / Code::Blocks / Dev-C++
 * Python 3 with Pillow (optional, only to regenerate the Lab-09 terminal screenshots with `tools/build_outputs.py`)
+* Python 3 with Pillow and Matplotlib (optional, only to regenerate the Lab-10 screenshots and graphs with `tools/build_assets.py`, and to run `tools/test_bruteforce.py`)
 * Windows / Linux / macOS
