@@ -1,25 +1,4 @@
-/*
- * DAA Lab-11, Q1: Shortest path on parity-constrained graphs via 0-1 BFS
- *
- * Idea: build the implicit "product graph" whose states are (v, p) with
- *       p = parity of the number of weight-1 edges used so far.
- *         edge (u,v,0): (u,p) -> (v,p    ) cost 0
- *         edge (u,v,1): (u,p) -> (v,1-p  ) cost 1
- *       Run 0-1 BFS (deque) from (S,0).  dist[v][p] = min W(P) over paths
- *       reaching v with k1(P) % 2 == p.  Because the penalty depends only on
- *       the final parity,
- *           answer[v] = min( dist[v][0], dist[v][1] + C ).
- *
- * Input representation: adjacency list stored in CSR form (compressed
- * sparse row) -> O(1) neighbour scan, O(V+E) memory.
- *
- * Input format (vertices are 1-indexed):
- *     n m S C
- *     u v w        (m lines, directed edge u->v, w in {0,1})
- *
- * Complexity: states = 2V, transitions = 2E.
- *             Time O(V + E), Space O(V + E).
- */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
