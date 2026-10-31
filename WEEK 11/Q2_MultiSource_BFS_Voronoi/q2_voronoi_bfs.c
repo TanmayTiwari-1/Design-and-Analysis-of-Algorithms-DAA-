@@ -1,27 +1,4 @@
-/*
- * DAA Lab-11, Q2: Multi-source BFS for radius-constrained Voronoi partitioning
- *
- * Idea: put ALL hubs in the queue at distance 0 and run ONE BFS.  Every
- *       vertex then gets dist = min_i dist(v,h_i) in a single pass.
- *       Nodes with dist == R are not expanded, so anything farther stays -1.
- *
- * Tie-breaking (smallest hub index): BFS is processed level by level.  When
- *       u (level d) sees a neighbour v already labelled at level d+1, we set
- *           owner[v] = min(owner[v], owner[u]).
- *       owner[u] is already final when u is dequeued, because every level-(d-1)
- *       vertex (the only ones that can change owner[u]) is dequeued before any
- *       level-d vertex (FIFO order).
- *
- * Input representation: undirected adjacency list in CSR form.
- *
- * Input format (vertices 1-indexed):
- *     n m K R
- *     h_1 h_2 ... h_K        (hub vertices, hub i has index i)
- *     u v                    (m lines, undirected edge)
- *
- * Complexity: each vertex enqueued once, each adjacency entry scanned once.
- *             Time O(V + E + K), Space O(V + E).
- */
+
 #include <stdio.h>
 #include <stdlib.h>
 
