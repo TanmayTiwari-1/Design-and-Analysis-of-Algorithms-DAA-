@@ -1,34 +1,4 @@
-/*
- * DAA Lab-11, Q3: Bidirectional BFS for the shortest transformation sequence
- *
- * Graph: one node per word, edge between words at Hamming distance exactly 1.
- *
- * Building neighbours WITHOUT the O(N^2 * L) pairwise comparison:
- *   Two words differ in exactly one position i  <=>  they agree after replacing
- *   position i by a wildcard.  For every position i we encode each word as a
- *   base-27 integer (letters 1..26, wildcard 0; 27^10 < 2^63), blank out
- *   position i, and sort the words by that key.  Words with equal key form a
- *   "group" = a clique of mutual neighbours.  A group is stored as a contiguous
- *   range in the sorted order, so a word's neighbours via position i are simply
- *   the range [gbeg, gend).
- *
- * Search: bidirectional BFS, always expanding (a whole level of) the side with
- *   the smaller frontier.  Each (position, group) is scanned at most once per
- *   direction, so the work per direction is O(N*L) instead of O(N*L*group size).
- *   After a full level expansion in which the searches touched, the minimum
- *   candidate  dist_s[u] + 1 + dist_other[v]  is the exact answer.
- *   Parent arrays give the actual word path.
- *
- * Input format:
- *     N L
- *     w_1 ... w_N          (dictionary D, lowercase, length L)
- *     A B                  (start and target)
- *   B must be in D.  A need not be in D (it is added as an extra start node).
- *
- * Complexity: build  O(L * N log N)   (L sorts of N 64-bit keys)
- *             search O(N * L)         (worst case, no early exit)
- *             space  O(N * L)
- */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
