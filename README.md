@@ -4,7 +4,7 @@
 
 ## Repository Overview
 
-This repository contains the C implementations and experimental analysis for **Lab-01, Lab-02, Lab-03, Lab-04, Lab-05, Lab-06, Lab-07, Lab-09, and Lab-10** of the **Design and Analysis of Algorithms (DAA)** course, along with the C++ generic-programming (templates) exercises of **Lab-08**. Lab-09 covers the **greedy design paradigm** (ten problems, each validated against an exhaustive or dynamic-programming oracle). Lab-10 covers **graphs and the Disjoint Set Union (Union-Find) data structure** (five problems, each validated against a brute-force oracle, with terminal screenshots and runtime graphs).
+This repository contains the C implementations and experimental analysis for **Lab-01, Lab-02, Lab-03, Lab-04, Lab-05, Lab-06, Lab-07, Lab-09, Lab-10, and Lab-11** of the **Design and Analysis of Algorithms (DAA)** course, along with the C++ generic-programming (templates) exercises of **Lab-08**. Lab-09 covers the **greedy design paradigm** (ten problems, each validated against an exhaustive or dynamic-programming oracle). Lab-10 covers **graphs and the Disjoint Set Union (Union-Find) data structure** (five problems, each validated against a brute-force oracle, with terminal screenshots and runtime graphs). Lab-11 covers **applications of Breadth-First Search** (three problems: 0-1 BFS on a parity-expanded state graph, multi-source BFS for Voronoi partitioning, and bidirectional BFS on a word graph, each validated against a brute-force reference, with terminal screenshots).
 
 The objective of these laboratories is to understand the implementation, analysis, and comparison of different algorithms using practical experiments. Each experiment includes source code, generated datasets, observations, complexity analysis, and README documentation.
 
@@ -2243,9 +2243,138 @@ Given a permutation `A` of `1 … n` and a list of allowed swaps `(u, v)` formin
 
 ---
 
+# Lab-11
+
+*BTech (CS-B and CE), 3rd Semester | October 27, 2026 | Instructor: Dr. Ajaya Kumar Dash*
+
+*Questions based on the applications of the Breadth-First Search (BFS) algorithm*
+
+Lab-11 is devoted to **Breadth-First Search** and three ways of bending it to fit a problem: running BFS on an **expanded state space** (0-1 BFS with a parity bit), starting BFS from **many sources at once** (multi-source BFS), and searching from **both ends** (bidirectional BFS). Plain BFS finds shortest paths in unweighted graphs in O(V + E); each problem below keeps that linear behaviour while handling an extra rule.
+
+For every question the input representation was chosen first: Q1 and Q2 store the graph as an adjacency list in **CSR form** (compressed sparse row: `start[]` plus a flat neighbour array, so a vertex's neighbours are contiguous in memory), while Q3 never builds an explicit graph and instead groups words by "wildcard patterns". Each question folder contains the C source, two sample inputs, a `README.md` (algorithm, input format, complexity, validation) and the terminal screenshots (PNG) of the real sample runs, all in the same folder. All three programs were checked against independent brute-force references on random inputs by `tests/run_tests.py` (400 graphs for Q1, 400 graphs for Q2, 600 dictionaries for Q3, 0 mismatches), and `tests/validation_all_programs.png` is the terminal screenshot of that run.
+
+How to run any question (from inside its folder):
+
+```bash
+gcc -Wall -Wextra -O2 -o Q1_prog q1_parity_01bfs.c
+./Q1_prog < sample_input.txt
+```
+
+Vertices are 1-indexed in Q1 and Q2. To run the validation, build the three programs in place and run `python3 tests/run_tests.py` from the `Lab-11` folder.
+
+## Experiment 1 – Shortest Path on Parity-Constrained Graphs via 0-1 BFS
+
+### Objective
+
+Given a directed graph with edge weights in `{0, 1}`, a source `S` and a penalty `C ≥ 0`, define the cost of a path `P` as `Cost(P) = W(P) + (0 if k1(P) is even, C if k1(P) is odd)`, where `W(P)` is the sum of the weights and `k1(P)` is the number of weight-1 edges used. Compute the minimum cost from `S` to every vertex (or report it unreachable). Implement it in C and derive the complexity.
+
+### Approach
+
+* **Input representation:** adjacency list in CSR form (`start[]`, `to[]`, `wt[]`), read as `n m S C` followed by `m` lines `u v w`.
+* The penalty depends only on the **parity of the number of weight-1 edges**, so parity is made part of the state: the implicit graph has states `(v, p)`, with a 0-edge going `(u,p) → (v,p)` at cost 0 and a 1-edge going `(u,p) → (v,1-p)` at cost 1.
+* **0-1 BFS** (a deque: 0-edges push to the front, 1-edges push to the back) from `(S, 0)` gives `dist[v][p]`, the minimum `W` over paths reaching `v` with parity `p`.
+* Because the penalty is a constant once the final parity is fixed, the answer is `min(dist[v][0], dist[v][1] + C)`; if both are infinite the vertex is reported `UNREACHABLE`.
+* A "path" is treated as a **walk** (vertices and edges may repeat), which is what makes the parity trick valid; in the first sample vertex 3 costs 4 by looping around a cycle to fix the parity, whereas a simple path would cost 6.
+
+### Concepts Covered
+
+* 0-1 BFS with a Deque
+* BFS on an Expanded (Product) State Graph
+* Parity as Extra State
+* CSR Adjacency Representation
+
+### Complexity
+
+* **States / transitions:** `2V` states, `2E` transitions
+* **Time:** O(V + E), since each state is finalised once and deque operations are O(1) (Dijkstra on the same graph would need O((V + E) log V))
+* **Space:** O(V + E)
+
+### Output
+
+* `q1_parity_01bfs.c`, `sample_input.txt`, `sample_input2.txt`, `README.md`, `q1_sample1.png`, `q1_sample2.png`
+* Sample run (`n = 7`, 8 edges, `S = 1`, `C = 5`): minimum costs `0, 0, 4, 4, 2, 2` for vertices 1 to 6, and vertex 7 is `UNREACHABLE`
+* Second sample (`n = 5`, `S = 1`, `C = 3`): costs `0, 4, 4, 2` for vertices 1 to 4 (vertices 2 and 3 pay the penalty `C = 3` on top of `W = 1`), vertex 5 `UNREACHABLE`
+* Brute-force check: 400 random graphs (self-loops, parallel edges, `C = 0`, unreachable vertices) against a dynamic program over the exact number of weight-1 edges, 0 mismatches
+* Scale test: `V = 500,000`, `E = 1,000,000` ran in about 0.4 s
+
+---
+
+## Experiment 2 – Multi-Source BFS for Radius-Constrained Voronoi Cell Partitioning
+
+### Objective
+
+Given an unweighted undirected graph, `K` hub vertices `h_1 … h_K` and a radius `R ≥ 0`, assign every vertex `v` to its nearest hub. If the nearest hub is farther than `R`, the vertex is unassigned (`owner = -1`); if several hubs tie, the one with the smallest index wins. Output the owner and the distance for every vertex. Implement it in C and derive the complexity.
+
+### Approach
+
+* **Input representation:** undirected adjacency list in CSR form (each edge stored twice), read as `n m K R`, then the `K` hubs, then `m` edges.
+* Running one BFS per hub would cost O(K · (V + E)). Instead **all hubs are placed in the queue at distance 0** and a **single BFS** runs, so each vertex receives `min_i dist(v, h_i)` in one pass.
+* A vertex with `dist == R` is **not expanded**, so everything farther than `R` stays at `-1`.
+* **Deterministic tie-breaking:** when `u` (level `d`) sees a neighbour `v` already labelled at level `d + 1`, it sets `owner[v] = min(owner[v], owner[u])`. This is correct because `owner[u]` can only be changed by vertices one level closer, and BFS dequeues all of level `d - 1` before any vertex of level `d`, so `owner[u]` is already final when `u` is dequeued.
+* If the same vertex is listed as a hub twice, the smaller index is kept.
+
+### Concepts Covered
+
+* Multi-Source BFS (Super-Source Idea)
+* Voronoi Partitioning on Graphs
+* Level-Synchronous Tie-Breaking
+* Radius-Bounded Search
+
+### Complexity
+
+* **Time:** O(V + E + K), since every vertex is enqueued once and every adjacency entry scanned once
+* **Space:** O(V + E)
+
+### Output
+
+* `q2_voronoi_bfs.c`, `sample_input.txt`, `sample_input2.txt`, `README.md`, `q2_sample1.png`, `q2_sample2_tiebreak.png`
+* Sample run (path graph on 10 vertices, hubs `1, 6, 9`, `R = 1`): owners `1, 1, -1, -1, 2, 2, 2, 3, 3, 3`, where vertices 3 and 4 are more than 1 step from every hub and stay unassigned
+* Tie-break run (path graph on 9 vertices, hubs `2, 8`, `R = 3`): vertex 5 is exactly 3 steps from both hubs and is given to hub 1
+* Brute-force check: 400 random graphs (disconnected graphs, duplicate hubs, `R = 0`, many ties) against a separate BFS from every hub, 0 mismatches
+* Scale test: `V = 500,000`, `E = 1,000,000`, `K = 1,000` ran in about 0.3 s
+
+---
+
+## Experiment 3 – Bidirectional BFS for the Shortest Transformation Sequence in a Word Graph
+
+### Objective
+
+Given a dictionary `D` of `N ≤ 10^5` distinct lowercase words of equal length `L ≤ 10`, a start word `A` and a target word `B`, find the minimum number of one-letter mutations `k` turning `A` into `B`, where every word after `A` must be in `D`. Print `-1` if no sequence exists. Implement it in C and derive the complexity.
+
+### Approach
+
+* **Input representation:** no explicit graph is built. Words are the vertices, and two words are adjacent if they differ in exactly one position.
+* **Finding neighbours without an O(N² · L) pairwise comparison:** two words differ in exactly one position `i` if and only if they are equal once position `i` is replaced by a wildcard. For each position the words are encoded as **base-27 integers** (letters 1 to 26, wildcard 0; `27^10 < 2^63`, so a key fits a 64-bit integer) with position `i` blanked, and sorted by that key. Words with equal keys form a *group*, which is stored as one contiguous range, so a word's neighbours through position `i` are exactly its group.
+* **Bidirectional BFS:** one search from `A` and one from `B`, always expanding one full level of the side with the **smaller frontier**. Each `(position, group)` pair is scanned at most once per direction, so the work per direction stays O(N · L) even when groups are large.
+* Whenever a vertex already visited by the opposite search is touched, the candidate `dist_s[u] + 1 + dist_other[v]` is recorded; after the level is finished the minimum candidate is the exact answer. Parent arrays from both sides are joined to print the actual word path.
+* **Edge cases:** `A = B` gives 0; `B` not in `D` gives `-1`; `A` not in `D` is added as an extra start-only node (the problem leaves this to the input constraints); no path gives `-1`.
+
+### Concepts Covered
+
+* Bidirectional BFS
+* Implicit Graph Construction via Wildcard Patterns
+* Sorting-Based Grouping with 64-bit Keys
+* Frontier Balancing and Path Reconstruction
+
+### Complexity
+
+* **Building the groups:** O(L · N log N) (L sorts of N 64-bit keys)
+* **Search:** O(N · L) in the worst case; in practice about `b^(d/2)` nodes per side instead of `b^d` for a one-sided BFS (branching factor `b`, answer length `d`)
+* **Space:** O(N · L)
+
+### Output
+
+* `q3_word_ladder_bibfs.c`, `sample_input.txt`, `sample_input2.txt`, `README.md`, `q3_sample1.png`, `q3_sample2_no_path.png`
+* Sample run (`hot dot dog lot log cog`, `hit → cog`): `k = 4` with path `hit -> hot -> dot -> dog -> cog`
+* Second sample (same dictionary without `cog`): `k = -1`, because the target is not in the dictionary
+* Brute-force check: 600 random dictionaries (`L = 1 … 5`, alphabets of 2 to 3 letters, `A` inside and outside `D`, `A = B`, unreachable targets) against a plain BFS with O(N²) Hamming checks; every printed path is also verified (starts at `A`, ends at `B`, stays in `D`, one letter per step), 0 mismatches
+* Scale test at the stated limits (`N = 100,000`, `L = 10`, 4-letter alphabet so the graph is well connected): `k = 16` in about 0.2 s
+
+---
+
 # Programming Language
 
-* C (Lab-01 to Lab-07, Lab-09 and Lab-10)
+* C (Lab-01 to Lab-07, Lab-09, Lab-10 and Lab-11)
 * C++ (Lab-08)
 
 ---
@@ -2259,6 +2388,13 @@ The Lab-10 programs need no extra libraries:
 ```bash
 gcc -O2 -o q1 q1_bipartite.c
 ./q1 < input.txt
+```
+
+The Lab-11 programs also need no extra libraries and are compiled with warnings enabled:
+
+```bash
+gcc -Wall -Wextra -O2 -o Q1_prog q1_parity_01bfs.c
+./Q1_prog < sample_input.txt
 ```
 
 Example (C):
@@ -2587,51 +2723,82 @@ DAA/
 │       ├── terminal_output.png
 │       └── README.md
 │
-└── Lab-10/
+├── Lab-10/
+│   ├── README.md
+│   │
+│   ├── tools/
+│   │   ├── build_assets.py
+│   │   └── test_bruteforce.py
+│   │
+│   ├── Q1_Online_Bipartiteness/
+│   │   ├── q1_bipartite.c
+│   │   ├── input.txt
+│   │   ├── output.txt
+│   │   ├── terminal_output.png
+│   │   ├── runtime_graph.png
+│   │   └── README.md
+│   │
+│   ├── Q2_Dynamic_Components_Grid/
+│   │   ├── q2_islands.c
+│   │   ├── input.txt
+│   │   ├── output.txt
+│   │   ├── terminal_output.png
+│   │   ├── runtime_graph.png
+│   │   └── README.md
+│   │
+│   ├── Q3_Max_Weight_Component_Size_K/
+│   │   ├── q3_maxweight_size.c
+│   │   ├── input.txt
+│   │   ├── output.txt
+│   │   ├── terminal_output.png
+│   │   ├── runtime_graph.png
+│   │   └── README.md
+│   │
+│   ├── Q4_Reverse_DSU_Deletions/
+│   │   ├── q4_reverse_dsu.c
+│   │   ├── input.txt
+│   │   ├── output.txt
+│   │   ├── terminal_output.png
+│   │   ├── runtime_graph.png
+│   │   └── README.md
+│   │
+│   └── Q5_Smallest_Permutation_Swaps/
+│       ├── q5_smallest_perm.c
+│       ├── input.txt
+│       ├── output.txt
+│       ├── terminal_output.png
+│       ├── runtime_graph.png
+│       └── README.md
+│
+└── Lab-11/
     ├── README.md
     │
-    ├── tools/
-    │   ├── build_assets.py
-    │   └── test_bruteforce.py
+    ├── tests/
+    │   ├── run_tests.py
+    │   └── validation_all_programs.png
     │
-    ├── Q1_Online_Bipartiteness/
-    │   ├── q1_bipartite.c
-    │   ├── input.txt
-    │   ├── output.txt
-    │   ├── terminal_output.png
-    │   ├── runtime_graph.png
+    ├── Q1_Parity_0-1_BFS/
+    │   ├── q1_parity_01bfs.c
+    │   ├── sample_input.txt
+    │   ├── sample_input2.txt
+    │   ├── q1_sample1.png
+    │   ├── q1_sample2.png
     │   └── README.md
     │
-    ├── Q2_Dynamic_Components_Grid/
-    │   ├── q2_islands.c
-    │   ├── input.txt
-    │   ├── output.txt
-    │   ├── terminal_output.png
-    │   ├── runtime_graph.png
+    ├── Q2_MultiSource_BFS_Voronoi/
+    │   ├── q2_voronoi_bfs.c
+    │   ├── sample_input.txt
+    │   ├── sample_input2.txt
+    │   ├── q2_sample1.png
+    │   ├── q2_sample2_tiebreak.png
     │   └── README.md
     │
-    ├── Q3_Max_Weight_Component_Size_K/
-    │   ├── q3_maxweight_size.c
-    │   ├── input.txt
-    │   ├── output.txt
-    │   ├── terminal_output.png
-    │   ├── runtime_graph.png
-    │   └── README.md
-    │
-    ├── Q4_Reverse_DSU_Deletions/
-    │   ├── q4_reverse_dsu.c
-    │   ├── input.txt
-    │   ├── output.txt
-    │   ├── terminal_output.png
-    │   ├── runtime_graph.png
-    │   └── README.md
-    │
-    └── Q5_Smallest_Permutation_Swaps/
-        ├── q5_smallest_perm.c
-        ├── input.txt
-        ├── output.txt
-        ├── terminal_output.png
-        ├── runtime_graph.png
+    └── Q3_Bidirectional_BFS_Word_Ladder/
+        ├── q3_word_ladder_bibfs.c
+        ├── sample_input.txt
+        ├── sample_input2.txt
+        ├── q3_sample1.png
+        ├── q3_sample2_no_path.png
         └── README.md
 ```
 
@@ -2713,6 +2880,15 @@ After completing these experiments, the following concepts were understood:
 * DSU with Component Aggregates (Size and Total Weight)
 * Offline Reverse-Time Processing (Turning Deletions into Insertions)
 * Smallest Permutation under Allowed Swaps via Connected Components
+* Breadth-First Search Applications (Shortest Paths in Unweighted Graphs in O(V + E))
+* 0-1 BFS with a Deque for {0,1}-Weighted Graphs
+* Expanding the State Space (Vertex plus Parity) to Encode a Path Constraint
+* Compressed Sparse Row (CSR) Adjacency Representation
+* Multi-Source BFS and Voronoi Partitioning of a Graph
+* Deterministic Tie-Breaking in Level-Synchronous BFS
+* Bidirectional BFS and Frontier Balancing
+* Implicit Graph Construction via Wildcard Patterns and Sorted 64-bit Keys (Word Ladder)
+* Validating BFS Programs Against Independent Brute-Force References with Randomised Testing
 * Performance Analysis of Algorithms
 * Experimental Validation of Theoretical Complexities
 
@@ -2786,6 +2962,9 @@ After completing these experiments, the following concepts were understood:
 | Lab-10 | Q3         | Max Weight Component with Size ≤ K (DSU + Root Scan) | O(E·V), O(E log V) with a heap |
 | Lab-10 | Q4         | Reverse Time-Step DSU (Vertex Deletions)      | O((V+E)·α(V))               |
 | Lab-10 | Q5         | Lexicographically Smallest Permutation (DSU + Sort) | O(n log n + m·α(n))   |
+| Lab-11 | Q1         | Parity-Constrained Shortest Path (0-1 BFS on Vertex-Parity States) | O(V+E)  |
+| Lab-11 | Q2         | Radius-Constrained Voronoi Cells (Multi-Source BFS) | O(V+E+K)             |
+| Lab-11 | Q3         | Word Ladder (Wildcard Groups + Bidirectional BFS) | O(L·N log N) build, O(N·L) search |
 
 ---
 
@@ -3015,11 +3194,28 @@ With **union by size** (attach the smaller tree under the larger) and **path com
 
 ---
 
+## Breadth-First Search Applications (Lab-11)
+
+Lab-11 reuses one idea three ways: **BFS explores a graph level by level, so the first time it reaches a vertex is along a shortest path** (counted in edges). Each problem keeps this O(V + E) behaviour while adding a twist. Techniques that recur across the three problems:
+
+* **Expanding the state** — when a rule depends on how a path was built (here, the parity of the number of weight-1 edges), put that information into the state and search the product graph `(vertex, parity)`. The cost is only a constant factor (`2V` states, `2E` transitions), and the penalty can then be applied at the end (Q1).
+* **0-1 BFS** — with edge weights restricted to 0 and 1, a deque replaces the priority queue: 0-edges are pushed to the front and 1-edges to the back, giving O(V + E) instead of Dijkstra's O((V + E) log V) (Q1).
+* **Many sources, one search** — starting a BFS with every source in the queue at distance 0 computes the distance to the *nearest* source for all vertices in a single pass, instead of one BFS per source (Q2).
+* **Tie-breaking by level** — because all vertices of one level are dequeued before the next level, a vertex's label is final when it is dequeued, so `owner[v] = min(owner[v], owner[u])` at equal distance yields the smallest hub index (Q2).
+* **Bounded search** — not expanding vertices at distance `R` limits the search to the coverage radius and leaves everything beyond it unassigned (Q2).
+* **Searching from both ends** — two searches meeting in the middle explore about `b^(d/2)` vertices each instead of `b^d`; always expanding the smaller frontier and finishing a full level before reading off the minimum candidate keeps the answer exact (Q3).
+* **Implicit graphs** — the word graph is never stored; wildcard keys (a word with one position blanked) group all words that are one mutation apart, turning an O(N² · L) neighbour search into L sorts, and a 64-bit base-27 encoding makes the keys cheap to compare (Q3).
+* **Input representation** — a CSR adjacency list keeps each vertex's neighbours contiguous in O(V + E) memory (Q1, Q2), while the dictionary problem avoids building any adjacency list at all (Q3).
+* **Validation** — each program was checked against an independent brute-force reference on random inputs (a DP over the number of weight-1 edges, a BFS from every hub, and an O(N²) Hamming BFS with path verification), and scale tests confirmed near-linear running time on inputs with up to 500,000 vertices and 1,000,000 edges (Q1, Q2) and 100,000 words (Q3).
+
+---
+
 # Software Requirements
 
-* GCC Compiler (C programs, Lab-01 to Lab-07, Lab-09 and Lab-10)
+* GCC Compiler (C programs, Lab-01 to Lab-07, Lab-09, Lab-10 and Lab-11)
 * G++ Compiler (C++ programs, Lab-08)
 * Visual Studio Code / Code::Blocks / Dev-C++
 * Python 3 with Pillow (optional, only to regenerate the Lab-09 terminal screenshots with `tools/build_outputs.py`)
 * Python 3 with Pillow and Matplotlib (optional, only to regenerate the Lab-10 screenshots and graphs with `tools/build_assets.py`, and to run `tools/test_bruteforce.py`)
+* Python 3 (optional, only to run the Lab-11 validation script `tests/run_tests.py`)
 * Windows / Linux / macOS
